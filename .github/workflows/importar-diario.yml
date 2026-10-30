@@ -13,11 +13,18 @@ jobs:
   import:
     runs-on: ubuntu-latest
     steps:
-      - name: Copiar repositorio original a una rama independiente
+      - name: Crear una copia independiente del contenido del diario
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git clone --branch main --single-branch https://github.com/Alvarorfontana/diario.git source
+          git clone --depth 1 --branch main --single-branch https://github.com/Alvarorfontana/diario.git source
           cd source
-          rm -rf .github/workflows
-          git push https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git HEAD:refs/heads/cloudflare-copy
+          rm -rf .git .github/workflows
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Copia independiente de Diario Federal"
+          git branch -M cloudflare-copy
+          git remote add destino https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+          git push --force destino cloudflare-copy
