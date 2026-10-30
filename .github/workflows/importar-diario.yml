@@ -1,6 +1,7 @@
 name: Importar copia de Diario Federal
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
