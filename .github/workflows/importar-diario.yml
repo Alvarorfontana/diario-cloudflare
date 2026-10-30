@@ -19,4 +19,5 @@ jobs:
         run: |
           git clone --branch main --single-branch https://github.com/Alvarorfontana/diario.git source
           cd source
+          rm -rf .github/workflows
           git push https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git HEAD:refs/heads/cloudflare-copy
