@@ -1,0 +1,34 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE_TITLE } from '../consts';
+---
+
+<BaseLayout title={`Quiénes somos | ${SITE_TITLE}`} description="Periodistas, escritores y pensadores de todo el país con una mirada nacional y federal de la Argentina.">
+	<article class="prose-articulo mx-auto max-w-2xl">
+		<h1 class="font-serif text-4xl font-bold">Quiénes somos</h1>
+		<p>
+			<strong>{SITE_TITLE}</strong> es un diario hecho por periodistas, escritores y pensadores de
+			todo el país. Nos une una conciencia nacional y federal: la idea de que la Argentina no se
+			explica solo desde Buenos Aires.
+		</p>
+		<p>
+			Escribimos desde el Norte Grande y desde la Patagonia, desde Cuyo, el Litoral, el centro y el
+			conurbano. Cada provincia tiene su historia, su economía, su forma de hablar y sus urgencias.
+			Queremos que esas particularidades se lean acá, contadas por quienes las viven.
+		</p>
+		<p>
+			Porque la nación es la suma de todas esas voces. Y un país que se escucha entero se entiende
+			mejor.
+		</p>
+
+		<h2>Cómo trabajamos</h2>
+		<p>
+			Contamos lo que pasa con datos y con fuentes. Cada foto lleva su epígrafe y su origen. Cuando
+			nos equivocamos lo corregimos y lo decimos al pie de la nota, en la fe de erratas.
+		</p>
+		<p>
+			Separamos la información de la opinión. Las columnas de opinión van firmadas y expresan la
+			mirada de su autor.
+		</p>
+	</article>
+</BaseLayout>

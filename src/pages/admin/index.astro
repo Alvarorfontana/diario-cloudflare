@@ -1,0 +1,713 @@
+---
+export const prerender = false;
+
+import { getRuntimeEnv } from '../../lib/runtimeEnv';
+import { isAdmin, loginCookie } from '../../lib/auth';
+import { SECCIONES } from '../../consts';
+import { REGIONES } from '../../lib/regiones';
+
+const env = getRuntimeEnv(Astro.locals);
+const PASSWORD = env.ADMIN_PASSWORD;
+
+let isAuthenticated = await isAdmin(Astro.request, env);
+let loginError = '';
+
+if (Astro.request.method === 'POST') {
+	const form = await Astro.request.formData();
+	if (PASSWORD && form.get('password') === PASSWORD) {
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: '/admin/',
+				'Set-Cookie': await loginCookie(PASSWORD, Astro.url.protocol === 'https:'),
+			},
+		});
+	}
+	loginError = PASSWORD ? 'Contraseña incorrecta.' : 'Falta configurar ADMIN_PASSWORD en Vercel.';
+}
+---
+
+<!doctype html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Admin - EL DIARIO</title>
+	<style>
+		* { box-sizing: border-box; }
+		body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; margin: 0; color: #1f2937; }
+		.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+		.header { background: #1a1712; color: #f6efdf; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+		.header h1 { font-family: Georgia, serif; font-size: 24px; margin: 0; }
+		.btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block; font-size: 14px; }
+		.btn-primary { background: #e93323; color: white; }
+		.btn-secondary { background: #6b7280; color: white; }
+		.btn-danger { background: #dc2626; color: white; }
+		.btn:disabled { opacity: .6; cursor: wait; }
+		.login-box { max-width: 400px; margin: 100px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+		.form-group { margin-bottom: 15px; }
+		.form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #374151; font-size: 14px; }
+		.form-group input[type=text], .form-group input[type=date], .form-group input[type=password], .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; font-family: inherit; }
+		.form-group textarea { min-height: 90px; }
+		.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+		@media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+		.card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
+		.card h3 { margin: 0 0 15px; }
+		.article-list { width: 100%; border-collapse: collapse; }
+		.article-list th, .article-list td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+		.article-list th { background: #f9fafb; font-weight: 600; color: #374151; }
+		.article-list tr:hover { background: #f9fafb; }
+		.badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+		.badge-ultimo { background: #fee2e2; color: #991b1b; }
+		.badge-draft { background: #fef3c7; color: #92400e; }
+		.badge-section { background: #e0e7ff; color: #3730a3; }
+		.actions { display: flex; gap: 8px; }
+		.actions button { padding: 6px 12px; font-size: 12px; }
+		.checks { display: flex; gap: 24px; flex-wrap: wrap; }
+		.checkbox-wrapper { display: flex; align-items: center; gap: 8px; }
+		.checkbox-wrapper input[type="checkbox"] { width: 18px; height: 18px; accent-color: #e93323; }
+		.checkbox-wrapper label { margin: 0 !important; cursor: pointer; }
+		.hidden { display: none !important; }
+		.upload-status { font-size: 13px; color: #6b7280; margin: 6px 0 0; }
+		.hero-preview { max-width: 240px; margin-top: 10px; border-radius: 4px; display: block; }
+		.error-box { background: #fee; color: #991b1b; padding: 10px; border-radius: 4px; margin-bottom: 15px; }
+		.ok-box { background: #ecfdf5; color: #065f46; padding: 10px; border-radius: 4px; margin-bottom: 15px; }
+
+		/* Editor visual */
+		.toolbar { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; background: #f3f4f6; border: 1px solid #d1d5db; border-bottom: 0; border-radius: 4px 4px 0 0; position: sticky; top: 0; z-index: 5; }
+		.toolbar button { border: 1px solid #d1d5db; background: white; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 14px; min-width: 34px; }
+		.toolbar button:hover { background: #e5e7eb; }
+		.toolbar .sep { width: 1px; background: #d1d5db; margin: 0 4px; }
+		#editor { min-height: 380px; padding: 18px 22px; border: 1px solid #d1d5db; border-radius: 0 0 4px 4px; background: white; font-family: Georgia, 'Times New Roman', serif; font-size: 18px; line-height: 1.7; outline: none; }
+		#editor:focus { border-color: #e93323; }
+		#editor:empty::before { content: attr(data-ph); color: #9ca3af; }
+		#editor p { margin: 0 0 1em; }
+		#editor h2 { font-size: 1.5em; margin: 1.4em 0 .5em; line-height: 1.25; }
+		#editor h3 { font-size: 1.2em; margin: 1.2em 0 .4em; }
+		#editor blockquote { margin: 1.2em 0; padding: .2em 0 .2em 1em; border-left: 4px solid #e93323; font-style: italic; color: #4b5563; }
+		#editor blockquote p { margin: 0; }
+		#editor p.destacado { font-size: 1.4em; line-height: 1.35; font-weight: 700; text-align: center; padding: .6em 0; border-top: 3px solid #1a1712; border-bottom: 1px solid #d1d5db; }
+		#editor ul, #editor ol { margin: 0 0 1em 1.4em; padding: 0; }
+		#editor a { color: #e93323; text-decoration: underline; }
+		#editor hr { border: 0; border-top: 1px solid #d1d5db; margin: 1.6em 0; }
+		#editor img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+		#editor figure { margin: 1.4em 0; padding: 8px; border: 1px dashed #d1d5db; border-radius: 6px; background: #fafafa; }
+		#editor figcaption { margin-top: 6px; font-family: -apple-system, 'Segoe UI', sans-serif; font-size: 13px; color: #6b7280; text-align: center; }
+		#editor figure.video { position: relative; aspect-ratio: 16 / 9; padding: 0; }
+		#editor figure.video iframe { width: 100%; height: 100%; border: 0; pointer-events: none; }
+		#html-source { width: 100%; min-height: 380px; font-family: monospace; font-size: 13px; padding: 12px; border: 1px solid #d1d5db; border-radius: 0 0 4px 4px; }
+		.tip { font-size: 12px; color: #6b7280; margin: 6px 0 0; }
+	</style>
+</head>
+<body>
+	{!isAuthenticated ? (
+		<div class="login-box">
+			<h2>Panel de Administración</h2>
+			{loginError && <div class="error-box">{loginError}</div>}
+			<form method="POST">
+				<div class="form-group">
+					<label for="password">Contraseña</label>
+					<input type="password" id="password" name="password" required autofocus />
+				</div>
+				<button type="submit" class="btn btn-primary" style="width: 100%;">Ingresar</button>
+			</form>
+		</div>
+	) : (
+		<div class="container">
+			<div class="header">
+				<h1>EL DIARIO - Panel de Admin</h1>
+				<div>
+					<button class="btn btn-primary" id="btn-nueva">+ Nueva nota</button>
+					<a href="/admin/publicidad/" class="btn btn-secondary" style="margin-left: 10px;">Publicidad</a>
+					<a href="/admin/en-vivo/" class="btn btn-secondary" style="margin-left: 10px;">En vivo</a>
+					<a href="/admin/flash/" class="btn btn-secondary" style="margin-left: 10px;">🎬 Video flash</a>
+					<a href="/admin/comentarios/" class="btn btn-secondary" style="margin-left: 10px;">Comentarios</a>
+					<a href="/" class="btn btn-secondary" style="margin-left: 10px;">Ver sitio</a>
+				</div>
+			</div>
+
+			<div id="msg"></div>
+
+			<div id="form-nuevo" class="card hidden">
+				<h3 id="form-titulo">Nueva nota</h3>
+				<form id="create-form">
+					<input type="hidden" id="edit-sha" />
+					<input type="hidden" id="edit-filename" />
+					<div class="grid">
+						<div>
+							<div class="form-group">
+								<label for="volanta">Volanta (opcional, antes del título)</label>
+								<input type="text" id="volanta" />
+							</div>
+							<div class="form-group">
+								<label for="title">Título</label>
+								<input type="text" id="title" required />
+							</div>
+							<div class="form-group">
+								<label for="slug">Slug (URL)</label>
+								<input type="text" id="slug" required placeholder="se completa solo con el título" />
+							</div>
+							<div class="form-group">
+								<label for="excerpt">Bajada / resumen</label>
+								<textarea id="excerpt" required></textarea>
+							</div>
+							<div class="form-group">
+								<label for="resumenCompartir">Resumen para compartir (opcional): un renglón para WhatsApp y redes</label>
+								<input type="text" id="resumenCompartir" maxlength="120" placeholder="Si lo dejás vacío, se usa la bajada" />
+								<p class="tip" id="resumenCompartir-cuenta" style="margin-top:4px">Hasta 90 caracteres se ve entero en WhatsApp.</p>
+							</div>
+							<div class="form-group">
+								<label for="section">Sección</label>
+								<select id="section">
+									{SECCIONES.map((s) => <option value={s.id}>{s.nombre}</option>)}
+								</select>
+							</div>
+							<div class="form-group">
+								<label for="region">Región (para la portada regional)</label>
+								<select id="region">
+									<option value="">Automática (la deduce el diario; las internacionales no entran)</option>
+									<option value="nacional">Nacional (no va a ninguna región)</option>
+									{REGIONES.map((r) => <option value={r.id}>{r.nombre} · {r.descripcion}</option>)}
+								</select>
+							</div>
+						</div>
+						<div>
+							<div class="form-group">
+								<label for="author">Autor</label>
+								<input type="text" id="author" value="Redacción" />
+							</div>
+							<div class="form-group">
+								<label for="ciudad">Ciudad del autor (opcional): sale en la firma, "Por X (Corrientes)"</label>
+								<input type="text" id="ciudad" placeholder="Ej: Corrientes" />
+							</div>
+							<div class="form-group">
+								<label for="date">Fecha de publicación</label>
+								<input type="date" id="date" required />
+							</div>
+							<div class="form-group checks">
+								<div class="checkbox-wrapper">
+									<input type="checkbox" id="breaking" />
+									<label for="breaking">Último momento</label>
+								</div>
+								<div class="checkbox-wrapper">
+									<input type="checkbox" id="tapa" />
+									<label for="tapa">Nota principal de Home (tarjeta grande)</label>
+								</div>
+								<div class="checkbox-wrapper">
+									<input type="checkbox" id="draft" />
+									<label for="draft">Borrador (no se muestra en el sitio)</label>
+								</div>
+							</div>
+							<div class="form-group">
+								<label for="heroFile">Foto de la nota</label>
+								<input type="file" id="heroFile" accept="image/*" />
+								<p id="upload-status" class="upload-status"></p>
+								<img id="hero-preview" class="hero-preview hidden" alt="" />
+								<label for="image_url" style="margin-top: 10px;">URL de la imagen (se completa sola al subir)</label>
+								<input type="text" id="image_url" placeholder="/uploads/..." />
+							</div>
+							<div class="form-group">
+								<label for="imageCaption">Pie de foto: qué muestra y de dónde es</label>
+								<input type="text" id="imageCaption" placeholder="Ej: Sesión en Diputados por la ley de discapacidad. Foto: Prensa HCDN" />
+							</div>
+							<div class="form-group">
+								<label for="tags">Etiquetas (separadas por comas)</label>
+								<input type="text" id="tags" placeholder="Política, Economía" />
+							</div>
+							<div class="form-group">
+								<label for="puntosClave">Lo que tenés que saber (opcional): hasta 3 puntos, uno por línea</label>
+								<textarea id="puntosClave" rows="3" placeholder="El riesgo país superó los 700 puntos&#10;Encarece refinanciar la deuda de 2027&#10;El Gobierno apuesta a señales fiscales"></textarea>
+							</div>
+							<div class="form-group">
+								<label for="correccion">Fe de erratas (opcional): si corregiste algo, contá qué</label>
+								<textarea id="correccion" rows="2" placeholder="Ej: Una versión anterior decía que el riesgo país cerró en 710 puntos. Ese fue el valor intradiario."></textarea>
+								<p class="tip" style="margin-top:4px">Se muestra al pie de la nota. Si queda vacío, no aparece nada.</p>
+							</div>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label>Texto de la nota</label>
+						<div class="toolbar" id="toolbar">
+							<button type="button" data-cmd="bold" title="Negrita (Ctrl+B)"><b>N</b></button>
+							<button type="button" data-cmd="italic" title="Cursiva (Ctrl+I)"><i>C</i></button>
+							<span class="sep"></span>
+							<button type="button" data-block="h2" title="Subtítulo">Subtítulo</button>
+							<button type="button" data-block="h3" title="Subtítulo menor">Sub 2</button>
+							<button type="button" data-block="p" title="Párrafo normal">Párrafo</button>
+							<span class="sep"></span>
+							<button type="button" data-block="blockquote" title="Cita">❝ Cita</button>
+							<button type="button" data-cmd="destacado" title="Frase destacada">★ Destacado</button>
+							<span class="sep"></span>
+							<button type="button" data-cmd="insertUnorderedList" title="Lista con viñetas">• Lista</button>
+							<button type="button" data-cmd="insertOrderedList" title="Lista numerada">1. Lista</button>
+							<span class="sep"></span>
+							<button type="button" data-cmd="link" title="Enlace">🔗</button>
+							<button type="button" data-cmd="unlink" title="Quitar enlace">⛓‍💥</button>
+							<button type="button" data-cmd="insertHorizontalRule" title="Línea separadora">―</button>
+							<span class="sep"></span>
+							<button type="button" data-cmd="imagen" title="Insertar foto (por link o subiendo una)">🖼 Foto</button>
+							<button type="button" data-cmd="video" title="Insertar video de YouTube (pegando el link)">▶ YouTube</button>
+							<button type="button" data-cmd="grafico" title="Insertar gráfico interactivo de Our World in Data (pegando el link)">📊 Gráfico</button>
+							<span class="sep"></span>
+							<button type="button" data-cmd="clear" title="Quitar formato">Limpiar</button>
+							<button type="button" data-cmd="undo" title="Deshacer">↶</button>
+							<button type="button" data-cmd="redo" title="Rehacer">↷</button>
+							<span class="sep"></span>
+							<button type="button" id="btn-html" title="Ver / editar HTML">&lt;/&gt;</button>
+						</div>
+						<div id="editor" contenteditable="true" data-ph="Escribí o pegá el texto de la nota. Al pegar se conservan párrafos, negritas y subtítulos."></div>
+						<textarea id="html-source" class="hidden"></textarea>
+						<input type="file" id="img-file" accept="image/*" class="hidden" />
+						<p class="tip">Cada Enter crea un párrafo nuevo. Seleccioná texto para ponerlo en negrita o convertirlo en subtítulo, cita o frase destacada. Las fotos y videos se insertan donde está el cursor; para sacar uno, ubicá el cursor justo debajo y apretá Retroceso.</p>
+					</div>
+
+					<button type="submit" class="btn btn-primary" id="btn-guardar">Guardar nota</button>
+					<button type="button" class="btn btn-secondary" id="btn-cancelar" style="margin-left: 8px;">Cancelar</button>
+				</form>
+			</div>
+
+			<div class="card">
+				<h3>Notas (<span id="count">…</span>)</h3>
+				<table class="article-list">
+					<thead>
+						<tr><th>Título</th><th>Sección</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr>
+					</thead>
+					<tbody id="lista"><tr><td colspan="5">Cargando…</td></tr></tbody>
+				</table>
+			</div>
+		</div>
+	)}
+
+	<script is:inline>
+		var $ = function (id) { return document.getElementById(id); };
+		var API = '/api/admin/articles';
+		if (!$('create-form')) { /* pantalla de login */ } else {
+
+		var slugTouched = false;
+		var editor = $('editor');
+		var htmlSource = $('html-source');
+		var htmlMode = false;
+		try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch (e) {}
+
+		function slugify(t) {
+			return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+				.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+		}
+		function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+		function showMsg(text, ok) {
+			$('msg').innerHTML = '<div class="' + (ok ? 'ok-box' : 'error-box') + '">' + esc(text) + '</div>';
+			window.scrollTo(0, 0);
+		}
+
+		/* ---------- Limpieza de HTML (editor y pegado) ---------- */
+		var BLOCK = { P:1, H1:1, H2:1, H3:1, H4:1, H5:1, H6:1, UL:1, OL:1, LI:1, BLOCKQUOTE:1, DIV:1, FIGURE:1, FIGCAPTION:1, HR:1, TABLE:1, TR:1 };
+		function hasBlock(el) { return !!el.querySelector('p,div,h1,h2,h3,h4,h5,h6,ul,ol,blockquote,table,figure'); }
+		function safeHref(h) { return /^(https?:|mailto:|\/|#)/i.test(h || ''); }
+
+		function cleanNode(n) {
+			if (n.nodeType === 3) return esc(n.nodeValue.replace(/\s+/g, ' '));
+			if (n.nodeType !== 1) return '';
+			var tag = n.nodeName;
+			if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'META' || tag === 'LINK') return '';
+			var inner = Array.prototype.map.call(n.childNodes, cleanNode).join('');
+			var wrap = function (t, s) { return inner.replace(/\s/g, '') ? '<' + t + '>' + s + '</' + t + '>' : inner; };
+			switch (tag) {
+				case 'B': case 'STRONG': return wrap('strong', inner);
+				case 'I': case 'EM': return wrap('em', inner);
+				case 'SPAN': case 'FONT': {
+					var st = n.style || {};
+					var out = inner;
+					var fw = st.fontWeight;
+					if (fw === 'bold' || parseInt(fw, 10) >= 600) out = wrap('strong', out);
+					if (st.fontStyle === 'italic') out = wrap('em', out);
+					return out;
+				}
+				case 'H1': case 'H2': return '<h2>' + inner + '</h2>';
+				case 'H3': case 'H4': case 'H5': case 'H6': return '<h3>' + inner + '</h3>';
+				case 'P': return '<p' + (n.classList.contains('destacado') ? ' class="destacado"' : '') + '>' + inner + '</p>';
+				case 'DIV': return hasBlock(n) ? inner : '<p>' + inner + '</p>';
+				case 'A': return safeHref(n.getAttribute('href')) ? '<a href="' + esc(n.getAttribute('href')) + '">' + inner + '</a>' : inner;
+				case 'FIGURE': return '<figure' + (n.classList.contains('video') ? ' class="video"' : n.classList.contains('grafico') ? ' class="grafico"' : '') + '>' + inner + '</figure>';
+				case 'IFRAME': {
+					var ysrc = n.getAttribute('src') || '';
+					if (/^https:\/\/ourworldindata\.org\/grapher\/[a-z0-9-]+(\?[\w=&%.,+:~-]*)?$/.test(ysrc))
+						return '<iframe src="' + esc(ysrc) + '" title="Gráfico de Our World in Data" loading="lazy"></iframe>';
+					return /^https:\/\/www\.youtube(-nocookie)?\.com\/embed\/[\w-]{11}$/.test(ysrc)
+						? '<iframe src="' + ysrc + '" title="Video de YouTube" loading="lazy" allowfullscreen></iframe>' : '';
+				}
+				case 'UL': case 'OL': case 'LI': case 'BLOCKQUOTE': case 'FIGCAPTION': return '<' + tag.toLowerCase() + '>' + inner + '</' + tag.toLowerCase() + '>';
+				case 'HR': return '<hr>';
+				case 'BR': return '<br>';
+				case 'IMG': return safeHref(n.getAttribute('src')) ? '<img src="' + esc(n.getAttribute('src')) + '" alt="' + esc(n.getAttribute('alt') || '') + '">' : '';
+				default: return inner;
+			}
+		}
+
+		function cleanHtml(html) {
+			var doc = new DOMParser().parseFromString('<body>' + html + '</body>', 'text/html');
+			var raw = Array.prototype.map.call(doc.body.childNodes, cleanNode).join('');
+			// Agrupar texto suelto en párrafos
+			var box = document.createElement('div');
+			box.innerHTML = raw;
+			var out = '', run = '';
+			var flush = function () {
+				if (run.replace(/<br>|\s|&nbsp;/g, '')) out += '<p>' + run.trim() + '</p>';
+				run = '';
+			};
+			Array.prototype.forEach.call(box.childNodes, function (c) {
+				if (c.nodeType === 1 && BLOCK[c.nodeName]) { flush(); out += c.outerHTML; }
+				else run += c.nodeType === 3 ? esc(c.nodeValue) : c.outerHTML;
+			});
+			flush();
+			// Quitar párrafos vacíos
+			return out.replace(/<p(?: class="destacado")?>(\s|<br>|&nbsp;)*<\/p>/g, '');
+		}
+
+		function textToHtml(text) {
+			return text.replace(/\r\n/g, '\n').split(/\n\s*\n/).map(function (b) { return b.trim(); }).filter(Boolean)
+				.map(function (b) { return '<p>' + esc(b).replace(/\n/g, ' ') + '</p>'; }).join('');
+		}
+
+		editor.addEventListener('paste', function (e) {
+			e.preventDefault();
+			var cd = e.clipboardData;
+			var html = cd.getData('text/html');
+			var text = cd.getData('text/plain');
+			var toInsert = html ? cleanHtml(html) : textToHtml(text);
+			document.execCommand('insertHTML', false, toInsert);
+		});
+
+		/* ---------- Barra de herramientas ---------- */
+		function currentBlock() {
+			var sel = window.getSelection();
+			if (!sel.rangeCount) return null;
+			var n = sel.anchorNode;
+			while (n && n !== editor) {
+				if (n.nodeType === 1 && /^(P|H2|H3|BLOCKQUOTE|LI)$/.test(n.nodeName)) return n;
+				n = n.parentNode;
+			}
+			return null;
+		}
+
+		$('toolbar').addEventListener('mousedown', function (e) { e.preventDefault(); }); // no perder la selección
+		$('toolbar').addEventListener('click', function (e) {
+			var b = e.target.closest('button');
+			if (!b || b.id === 'btn-html') return;
+			if (htmlMode) return;
+			editor.focus();
+			var block = b.dataset.block, cmd = b.dataset.cmd;
+			if (block) {
+				var cur = currentBlock();
+				var already = cur && cur.nodeName.toLowerCase() === block;
+				document.execCommand('formatBlock', false, already ? 'p' : block);
+			} else if (cmd === 'destacado') {
+				var cb = currentBlock();
+				if (cb && cb.nodeName === 'P') cb.classList.toggle('destacado');
+			} else if (cmd === 'link') {
+				var url = prompt('Dirección del enlace (https://…)');
+				if (url) document.execCommand('createLink', false, /^(https?:|mailto:|\/)/i.test(url) ? url : 'https://' + url);
+			} else if (cmd === 'imagen') {
+				insertarFoto();
+			} else if (cmd === 'video') {
+				insertarVideo();
+			} else if (cmd === 'grafico') {
+				insertarGrafico();
+			} else if (cmd === 'clear') {
+				document.execCommand('removeFormat');
+				document.execCommand('formatBlock', false, 'p');
+			} else if (cmd) {
+				document.execCommand(cmd);
+			}
+		});
+
+		/* ---------- Fotos y videos dentro de la nota ---------- */
+		var savedRange = null;
+		function guardarSeleccion() {
+			var sel = window.getSelection();
+			savedRange = sel.rangeCount && editor.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : null;
+		}
+		function insertarBloque(html) {
+			editor.focus();
+			if (savedRange) { var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(savedRange); }
+			document.execCommand('insertHTML', false, html + '<p><br></p>');
+		}
+		function youtubeId(url) {
+			var m = String(url).trim().match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/|v\/))([\w-]{11})/);
+			return m ? m[1] : null;
+		}
+		function insertarVideo() {
+			guardarSeleccion();
+			var url = prompt('Pegá el link del video de YouTube');
+			if (!url) return;
+			var id = youtubeId(url);
+			if (!id) { showMsg('No reconozco ese link de YouTube. Probá copiando la dirección desde el botón Compartir del video.', false); return; }
+			insertarBloque('<figure class="video" contenteditable="false"><iframe src="https://www.youtube-nocookie.com/embed/' + id + '" title="Video de YouTube" allowfullscreen></iframe></figure>');
+		}
+		// Gráficos de Our World in Data (datos abiertos, licencia CC BY): se pega el link del gráfico.
+		function insertarGrafico() {
+			guardarSeleccion();
+			var url = prompt('Pegá el link del gráfico de Our World in Data (ourworldindata.org/grapher/...)');
+			if (!url) return;
+			var u;
+			try { u = new URL(url.trim()); } catch (e) { u = null; }
+			if (!u || u.hostname !== 'ourworldindata.org' || !/^\/grapher\/[a-z0-9-]+$/.test(u.pathname)) {
+				showMsg('Ese link no es un gráfico de Our World in Data. Abrí el gráfico y copiá la dirección: tiene que decir ourworldindata.org/grapher/...', false); return;
+			}
+			u.hash = ''; if (!u.searchParams.get('tab')) u.searchParams.set('tab', 'chart');
+			var src = 'https://ourworldindata.org' + u.pathname + '?' + u.searchParams.toString();
+			if (!/^https:\/\/ourworldindata\.org\/grapher\/[a-z0-9-]+(\?[\w=&%.,+:~-]*)?$/.test(src)) { showMsg('No pude usar ese link. Probá copiándolo de nuevo desde el gráfico.', false); return; }
+			insertarBloque('<figure class="grafico" contenteditable="false"><iframe src="' + src + '" title="Gráfico de Our World in Data" loading="lazy"></iframe><figcaption>Fuente: Our World in Data (CC BY)</figcaption></figure>');
+		}
+		function insertarFoto() {
+			guardarSeleccion();
+			var url = prompt('Pegá la dirección (link) de la foto. Si querés subir una desde tu computadora o celular, dejá esto vacío y aceptá.');
+			if (url === null) return;
+			url = url.trim();
+			if (url) {
+				if (!/^https?:\/\//i.test(url)) { showMsg('El link de la foto tiene que empezar con https://', false); return; }
+				return ponerFoto(url);
+			}
+			$('img-file').value = '';
+			$('img-file').click();
+		}
+		function ponerFoto(src) {
+			var pie = prompt('Pie de foto: qué muestra y de dónde es (ej: "Acto en Plaza de Mayo. Foto: Télam")') || '';
+			insertarBloque('<figure contenteditable="false"><img src="' + esc(src) + '" alt="' + esc(pie) + '">' + (pie ? '<figcaption>' + esc(pie) + '</figcaption>' : '') + '</figure>');
+		}
+		$('img-file').addEventListener('change', async function () {
+			var file = $('img-file').files[0];
+			if (!file) return;
+			showMsg('Subiendo foto…', true);
+			try {
+				var blob = await resizeImage(file);
+				var fd = new FormData();
+				fd.append('file', blob, file.name.replace(/\.[^.]+$/, '') + '.jpg');
+				var res = await fetch('/api/upload-image', { method: 'POST', body: fd });
+				var r = await res.json();
+				if (!r.ok) throw new Error(r.error || r.detail || 'error desconocido');
+				$('msg').innerHTML = '';
+				ponerFoto(r.url);
+			} catch (err) { showMsg('No se pudo subir la foto: ' + err.message, false); }
+		});
+
+		$('btn-html').addEventListener('click', function () {
+			htmlMode = !htmlMode;
+			if (htmlMode) {
+				htmlSource.value = cleanHtml(editor.innerHTML).replace(/(<\/(?:p|h2|h3|ul|ol|blockquote|figure)>)/g, '$1\n');
+				editor.classList.add('hidden'); htmlSource.classList.remove('hidden');
+			} else {
+				editor.innerHTML = cleanHtml(htmlSource.value);
+				htmlSource.classList.add('hidden'); editor.classList.remove('hidden');
+			}
+		});
+
+		function getContent() {
+			return cleanHtml(htmlMode ? htmlSource.value : editor.innerHTML);
+		}
+		function setContent(html) {
+			if (htmlMode) $('btn-html').click();
+			editor.innerHTML = cleanHtml(html || '');
+		}
+
+		/* ---------- Lista de notas ---------- */
+		var SECCION_NOMBRE = {};
+		Array.prototype.forEach.call($('section').options, function (o) { SECCION_NOMBRE[o.value] = o.text; });
+
+		async function cargarLista() {
+			try {
+				var res = await fetch(API + '?action=list');
+				var data = await res.json();
+				if (!res.ok) throw new Error(data.error || ('Error ' + res.status));
+				$('count').textContent = data.length;
+				$('lista').innerHTML = data.map(function (a) {
+					return '<tr><td>' + esc(a.title) + '</td>' +
+						'<td><span class="badge badge-section">' + esc(SECCION_NOMBRE[a.section] || a.section || '-') + '</span></td>' +
+						'<td>' + (a.date ? a.date.split('-').reverse().join('/') : '-') + '</td>' +
+						'<td>' + (a.draft ? '<span class="badge badge-draft">Borrador</span> ' : '') + (a.breaking ? '<span class="badge badge-ultimo">Último momento</span> ' : '') + (a.tapa ? '<span class="badge badge-section">Principal de Home</span>' : '') + '</td>' +
+						'<td class="actions">' +
+						(/\.mdx$/.test(a.filename) ? '' : '<button class="btn btn-primary" data-act="edit" data-file="' + esc(a.filename) + '">Editar</button>') +
+						'<button class="btn btn-danger" data-act="delete" data-file="' + esc(a.filename) + '" data-sha="' + esc(a.sha) + '">Eliminar</button></td></tr>';
+				}).join('') || '<tr><td colspan="5">Todavía no hay notas.</td></tr>';
+			} catch (err) {
+				$('count').textContent = '0';
+				$('lista').innerHTML = '';
+				showMsg('No se pudieron cargar las notas: ' + err.message, false);
+			}
+		}
+
+		$('lista').addEventListener('click', function (e) {
+			var b = e.target.closest('button');
+			if (!b) return;
+			if (b.dataset.act === 'edit') editarNota(b.dataset.file);
+			if (b.dataset.act === 'delete') borrarNota(b.dataset.file, b.dataset.sha);
+		});
+
+		/* ---------- Formulario ---------- */
+		function limpiarFormulario() {
+			$('create-form').reset();
+			$('edit-sha').value = ''; $('edit-filename').value = '';
+			$('slug').disabled = false; slugTouched = false;
+			$('date').value = new Date().toISOString().slice(0, 10);
+			$('author').value = 'Redacción';
+			$('hero-preview').classList.add('hidden'); $('upload-status').textContent = '';
+			$('resumenCompartir-cuenta').textContent = 'Hasta 90 caracteres se ve entero en WhatsApp.';
+			setContent('');
+		}
+		function abrirFormulario(titulo) {
+			$('form-titulo').textContent = titulo;
+			$('form-nuevo').classList.remove('hidden');
+			window.scrollTo(0, 0);
+		}
+
+		$('btn-nueva').addEventListener('click', function () { limpiarFormulario(); abrirFormulario('Nueva nota'); });
+		$('btn-cancelar').addEventListener('click', function () { $('form-nuevo').classList.add('hidden'); });
+
+		async function editarNota(filename) {
+			try {
+				var res = await fetch(API + '?action=get&filename=' + encodeURIComponent(filename));
+				var r = await res.json();
+				if (!res.ok || !r.ok) throw new Error(r.error || 'Error');
+				limpiarFormulario();
+				var d = r.data;
+				$('edit-sha').value = r.sha; $('edit-filename').value = r.filename;
+				$('slug').value = r.filename.replace(/\.(md|mdx)$/, ''); $('slug').disabled = true;
+				$('title').value = d.title; $('volanta').value = d.volanta; $('excerpt').value = d.excerpt;
+				$('section').value = d.section; $('author').value = d.author; $('region').value = d.region || ''; $('ciudad').value = d.ciudad || ''; $('date').value = d.date;
+				$('breaking').checked = d.breaking; $('draft').checked = d.draft;
+				$('tapa').checked = d.tapa;
+				$('image_url').value = d.image_url; $('imageCaption').value = d.imageCaption;
+				$('tags').value = (d.tags || []).join(', ');
+				$('puntosClave').value = (d.puntosClave || []).join('\n');
+				$('resumenCompartir').value = d.resumenCompartir || ''; $('resumenCompartir').dispatchEvent(new Event('input'));
+				$('correccion').value = d.correccion || '';
+				if (d.image_url) { $('hero-preview').src = d.image_url; $('hero-preview').classList.remove('hidden'); }
+				setContent(r.body);
+				abrirFormulario('Editar nota');
+			} catch (err) { showMsg('No se pudo abrir la nota: ' + err.message, false); }
+		}
+
+		async function borrarNota(filename, sha) {
+			if (!confirm('¿Eliminar esta nota? No se puede deshacer.')) return;
+			var res = await fetch(API + '?filename=' + encodeURIComponent(filename) + '&sha=' + encodeURIComponent(sha), { method: 'DELETE' });
+			var r = await res.json();
+			if (res.ok && r.ok) { showMsg('Nota eliminada. El sitio se actualiza en ~1 minuto.', true); cargarLista(); }
+			else showMsg('No se pudo eliminar: ' + (r.error || 'error'), false);
+		}
+
+		$('title').addEventListener('input', function () { if (!slugTouched && !$('slug').disabled) $('slug').value = slugify($('title').value); });
+		$('slug').addEventListener('input', function () { slugTouched = true; });
+
+		/* ---------- Foto ---------- */
+		// WhatsApp descarta las fotos de vista previa muy pesadas (más de ~300 KB) y deja la miniatura borrosa.
+		// Por eso se achica a 1200 px de ancho y se baja la calidad hasta que pese menos de 250 KB.
+		var MAX_BYTES = 250 * 1024;
+		function encodeJpeg(img, width, quality) {
+			return new Promise(function (resolve, reject) {
+				var scale = Math.min(1, width / img.width);
+				var c = document.createElement('canvas');
+				c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+				var ctx = c.getContext('2d');
+				ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+				ctx.drawImage(img, 0, 0, c.width, c.height);
+				c.toBlob(function (b) { b ? resolve(b) : reject(new Error('No se pudo procesar la imagen')); }, 'image/jpeg', quality);
+			});
+		}
+		function resizeImage(file) {
+			return new Promise(function (resolve, reject) {
+				var img = new Image(); var url = URL.createObjectURL(file);
+				img.onload = async function () {
+					try {
+						// Primero se intenta mantener 1200 px de ancho bajando la calidad: una foto angosta
+						// se ve borrosa en la vista previa de WhatsApp.
+						var widths = [1200, 1000, 800];
+						var blob = null;
+						for (var w = 0; w < widths.length; w++) {
+							for (var q = 0.82; q >= 0.4; q -= 0.06) {
+								blob = await encodeJpeg(img, widths[w], q);
+								if (blob.size <= MAX_BYTES) { URL.revokeObjectURL(url); return resolve(blob); }
+							}
+						}
+						URL.revokeObjectURL(url);
+						resolve(blob);
+					} catch (e) { reject(e); }
+				};
+				img.onerror = function () { reject(new Error('No se pudo leer la imagen')); };
+				img.src = url;
+			});
+		}
+		$('heroFile').addEventListener('change', async function () {
+			var file = $('heroFile').files[0];
+			if (!file) return;
+			$('upload-status').textContent = 'Subiendo foto...';
+			var ancho = await new Promise(function (ok) { var i = new Image(); i.onload = function () { ok(i.naturalWidth); URL.revokeObjectURL(i.src); }; i.onerror = function () { ok(0); }; i.src = URL.createObjectURL(file); });
+			var avisoChica = ancho && ancho < 1000 ? ' Ojo: la foto es chica (' + ancho + ' px de ancho). Si podés, usá una de al menos 1200 px para que se vea nítida en WhatsApp.' : '';
+			try {
+				var blob = await resizeImage(file);
+				var fd = new FormData();
+				fd.append('file', blob, file.name.replace(/\.[^.]+$/, '') + '.jpg');
+				var res = await fetch('/api/upload-image', { method: 'POST', body: fd });
+				var r = await res.json();
+				if (r.ok) {
+					$('image_url').value = r.url;
+					$('hero-preview').src = URL.createObjectURL(blob); $('hero-preview').classList.remove('hidden');
+					$('upload-status').textContent = 'Foto subida (' + Math.round(blob.size / 1024) + ' KB). Ahora guardá la nota.' + avisoChica;
+				} else $('upload-status').textContent = 'No se pudo subir: ' + (r.error || r.detail || 'error desconocido');
+			} catch (err) { $('upload-status').textContent = 'No se pudo subir la foto. Probá de nuevo.'; }
+		});
+
+		/* ---------- Resumen para compartir: contador de caracteres ---------- */
+		$('resumenCompartir').addEventListener('input', function () {
+			var n = $('resumenCompartir').value.length;
+			$('resumenCompartir-cuenta').textContent = n === 0 ? 'Hasta 90 caracteres se ve entero en WhatsApp.' : n + ' caracteres' + (n > 90 ? ' (WhatsApp puede cortarlo)' : ' (se ve entero en WhatsApp)');
+		});
+
+		/* ---------- Guardar ---------- */
+		$('create-form').addEventListener('submit', async function (e) {
+			e.preventDefault();
+			var contenido = getContent();
+			if (!contenido) { showMsg('La nota no tiene texto.', false); return; }
+			// El diseño de la portada se luce con fotos: avisar antes de publicar una nota sin foto.
+			if (!$('image_url').value.trim() && !$('draft').checked) {
+				if (!confirm('Esta nota no tiene foto. En la portada se va a ver un recuadro con la marca en lugar de la imagen.\n\n¿Querés publicarla igual?')) { $('heroFile').focus(); return; }
+			}
+			// Toda foto lleva epígrafe con lo que muestra y su fuente.
+			if ($('image_url').value.trim() && !$('imageCaption').value.trim() && !$('draft').checked) {
+				if (!confirm('La foto no tiene pie de foto.\n\nConviene contar qué muestra y de dónde es (por ejemplo: "Foto: Prensa Senado").\n\n¿Querés publicarla igual?')) { $('imageCaption').focus(); return; }
+			}
+			var btn = $('btn-guardar'); btn.disabled = true; btn.textContent = 'Guardando…';
+			var payload = {
+				slug: slugify($('slug').value),
+				filename: $('edit-filename').value || undefined,
+				sha: $('edit-sha').value || undefined,
+				content: contenido,
+				data: {
+					title: $('title').value.trim(), volanta: $('volanta').value.trim(), excerpt: $('excerpt').value.trim(),
+					section: $('section').value, author: $('author').value.trim() || 'Redacción', region: $('region').value, ciudad: $('ciudad').value.trim(), date: $('date').value,
+					breaking: $('breaking').checked, draft: $('draft').checked, tapa: $('tapa').checked,
+					image_url: $('image_url').value.trim(), imageCaption: $('imageCaption').value.trim(),
+					tags: $('tags').value.split(',').map(function (t) { return t.trim(); }).filter(Boolean),
+					resumenCompartir: $('resumenCompartir').value.trim(),
+					correccion: $('correccion').value.trim(),
+					puntosClave: $('puntosClave').value.split('\n').map(function (t) { return t.trim(); }).filter(Boolean).slice(0, 3)
+				}
+			};
+			try {
+				var res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+				var r = await res.json();
+				if (res.ok && r.ok) {
+					$('form-nuevo').classList.add('hidden');
+					showMsg('Nota guardada. En aproximadamente 1 minuto se ve publicada en el sitio.', true);
+					cargarLista();
+				} else showMsg('Error al guardar: ' + (r.error || 'desconocido'), false);
+			} catch (err) { showMsg('Error de conexión al guardar.', false); }
+			btn.disabled = false; btn.textContent = 'Guardar nota';
+		});
+
+		limpiarFormulario();
+		$('form-nuevo').classList.add('hidden');
+		cargarLista();
+		}
+	</script>
+</body>
+</html>

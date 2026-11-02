@@ -1,0 +1,84 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import AdBanner from '../components/AdBanner.astro';
+import InstalarApp from '../components/InstalarApp.astro';
+import '../styles/global.css';
+import { GA_ID } from '../consts';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+	title: string;
+	description: string;
+	image?: ImageMetadata | string;
+	// Imagen propia de 1200x630 para las vistas previas en redes (/api/og/<slug>.jpg).
+	ogImage?: string;
+	publishedTime?: Date;
+	author?: string;
+	section?: string;
+}
+
+const { title, description, image, ogImage, publishedTime, author, section } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+	<head>
+		<BaseHead
+			title={title}
+			description={description}
+			image={image}
+			ogImage={ogImage}
+			publishedTime={publishedTime}
+			author={author}
+			section={section}
+		/>
+		<!-- Tipografías de diario: Newsreader (titulares y texto, hecha para noticias) e Inter (interfaz). Gratuitas, Google Fonts. -->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400..800;1,6..72,400..600&display=swap" rel="stylesheet" />
+		<!-- Vercel Web Analytics (contador de visitas) — no borrar -->
+		<script is:inline>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+		<script is:inline defer src="/_vercel/insights/script.js"></script>
+		{GA_ID && (
+			<>
+				<script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
+				<script is:inline define:vars={{ GA_ID }}>
+					window.dataLayer = window.dataLayer || [];
+					function gtag(){dataLayer.push(arguments);}
+					gtag('js', new Date());
+					gtag('config', GA_ID);
+				</script>
+			</>
+		)}
+		<!-- App instalable: registra el service worker -->
+		<script is:inline>
+			if ('serviceWorker' in navigator) {
+				window.addEventListener('load', function () {
+					navigator.serviceWorker.register('/sw.js').catch(function () {});
+				});
+			}
+		</script>
+		<!-- Fotos: si la versión optimizada falla, se prueba una vez con la original -->
+		<script is:inline>
+			document.addEventListener('error', function (e) {
+				var img = e.target;
+				if (img && img.tagName === 'IMG' && img.dataset && img.dataset.fallbackSrc && !img.dataset.fallbackTried) {
+					img.dataset.fallbackTried = '1';
+					img.src = img.dataset.fallbackSrc;
+				}
+			}, true);
+		</script>
+	</head>
+	<body class="flex min-h-screen flex-col font-sans text-neutral-900 antialiased">
+		<Header />
+		<AdBanner position="header" maxAds={1} />
+		<main class="mx-auto w-full max-w-6xl flex-1 px-4 pt-8">
+			<slot />
+		</main>
+		<AdBanner position="footer" maxAds={2} />
+		<Footer />
+		<InstalarApp />
+	</body>
+</html>

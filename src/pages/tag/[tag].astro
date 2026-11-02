@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ArticleCard from '../../components/ArticleCard.astro';
+import { SITE_TITLE, slugify } from '../../consts';
+import { getArticulos } from '../../lib/articles';
+
+export const prerender = false;
+
+const { tag } = Astro.params;
+if (!tag) {
+	return Astro.redirect('/404');
+}
+
+const todos = await getArticulos();
+
+// Normalizar tags: pueden venir como array o como texto separado por comas
+function obtenerTags(articulo: any): string[] {
+	const t = articulo.tags;
+	if (Array.isArray(t)) return t;
+	if (typeof t === 'string' && t.trim()) return t.split(',').map((s: string) => s.trim());
+	return [];
+}
+
+// Filtrar artículos que tengan esta etiqueta
+const arts = todos.filter((a: any) =>
+	obtenerTags(a).some((t: string) => slugify(t) === tag)
+);
+
+// Recuperar el nombre original (con acentos) desde el primer artículo
+const nombre = arts[0]
+	? obtenerTags(arts[0]).find((t: string) => slugify(t) === tag)
+	: null;
+---
+
+<BaseLayout title={`#${nombre ?? tag} | ${SITE_TITLE}`} description={`Noticias etiquetadas como ${nombre ?? tag}.`} image={arts[0]?.image_url}>
+	<h1 class="titulo-seccion text-3xl sm:text-4xl"><span><span class="text-brand">#</span>{nombre ?? tag}</span></h1>
+
+	{
+		arts.length === 0 ? (
+			<p class="tarjeta mt-6 p-10 text-center text-neutral-500">No hay noticias con esta etiqueta.</p>
+		) : (
+			<div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+				{arts.map((articulo: any) => <ArticleCard article={articulo} />)}
+			</div>
+		)
+	}
+</BaseLayout>

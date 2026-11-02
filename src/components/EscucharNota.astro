@@ -1,0 +1,257 @@
+---
+// Reproductor "Escuchá esta nota". El audio lo genera GitHub Actions
+// (scripts/generar-audios.py) y queda anotado en data/audios.json.
+// Si la nota todavía no tiene audio, no se muestra nada.
+import audios from '../../data/audios.json';
+
+interface Props {
+	slug: string;
+	title: string;
+}
+const { slug, title } = Astro.props;
+const audio = (audios as Record<string, { archivo: string; duracion: number }>)[slug];
+// Siempre ofrecer un enlace directo aunque el manifiesto todavía no esté sincronizado.
+const archivo = audio?.archivo ?? `/audio/${slug}.mp3`;
+const duracion = audio?.duracion ?? 0;
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+const minutos = duracion ? Math.max(1, Math.round(duracion / 60)) : 0;
+---
+
+{
+	(
+		<div
+			id="escuchar"
+			class="escuchar mt-3 inline-flex max-w-full scroll-mt-20 rounded-full bg-white px-2 py-1.5 shadow-[inset_0_0_0_1px_#e2e2dc] transition-shadow"
+			data-escuchar
+			data-titulo={title}
+			data-slug={slug}
+		>
+			<audio preload="none" src={archivo} data-audio></audio>
+			<div class="flex items-center gap-2">
+				<button
+					type="button"
+					class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-dark"
+					aria-label="Escuchar la nota"
+					data-play
+				>
+					<svg data-icono-play viewBox="0 0 24 24" class="ml-0.5 h-4 w-4" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" /></svg>
+					<svg data-icono-pausa viewBox="0 0 24 24" class="hidden h-4 w-4" fill="currentColor" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1" /><rect x="13.5" y="5" width="4" height="14" rx="1" /></svg>
+				</button>
+
+				<div class="min-w-0 flex-1">
+					<div class="flex items-baseline justify-between gap-2">
+						<p class="truncate text-[13px] font-bold text-ink">Escuchá esta nota<span class="hidden font-normal text-neutral-500 sm:inline">{duracion ? ` · ${minutos} min` : ''}</span></p>
+						<p class="shrink-0 text-[11px] tabular-nums text-neutral-500"><span data-actual>0:00</span> / <span data-total>{mmss(duracion)}</span></p>
+					</div>
+					<input
+						type="range" min="0" max={duracion || 1} step="1" value="0"
+						class="barra sr-only"
+						aria-label="Avanzar o retroceder"
+						data-barra
+					/>
+				</div>
+
+				<button
+					type="button"
+					class="hidden"
+					aria-label="Cambiar velocidad"
+					title="Velocidad"
+					data-velocidad
+				>1x</button>
+
+				
+				<a href={archivo} download aria-label="Descargar audio" title="Descargar audio" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-brand">
+					<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
+				</a>
+				<details class="mas-audio hidden">
+					<summary class="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-full text-neutral-600 hover:bg-neutral-100 hover:text-ink" aria-label="Más opciones del audio" title="Más opciones">
+						<svg viewBox="0 0 24 24" class="h-[18px] w-[18px] fill-current" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+					</summary>
+					<div class="absolute right-0 z-20 mt-2 flex items-center gap-0.5 rounded-full bg-white px-1.5 py-1 shadow-[0_6px_20px_rgba(0,0,0,0.12),inset_0_0_0_1px_#e2e2dc]">
+						<button type="button" class="relative flex h-9 w-9 items-center justify-center rounded-full text-ink hover:bg-neutral-100 hover:text-brand" title="Compartir audio" data-compartir>
+							<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" /><path d="M12 3v12" /><path d="m7 8 5-5 5 5" /></svg>
+							<span class="sr-only" data-compartir-texto>Compartir audio</span>
+						</button>
+						<a href="https://www.facebook.com/profile.php?id=61595974264717" target="_blank" rel="noopener noreferrer" aria-label="Visitar Diario Federal en Facebook" title="Diario Federal en Facebook" class="flex h-9 w-9 items-center justify-center rounded-full text-ink hover:bg-neutral-100 hover:text-[#1877F2]">
+							<svg viewBox="0 0 24 24" class="h-4 w-4 fill-current" aria-hidden="true"><path d="M24 12.073C24 5.446 18.627.073 12 .073S0 5.446 0 12.073c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+						</a>
+						<a href={archivo} download aria-label="Descargar audio" title="Descargar" class="flex h-9 w-9 items-center justify-center rounded-full text-ink hover:bg-neutral-100 hover:text-brand">
+							<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
+						</a>
+						<a href={archivo} target="_blank" rel="noopener" aria-label="Abrir el audio en otra pestaña" title="Abrir audio" class="flex h-9 w-9 items-center justify-center rounded-full text-ink hover:bg-neutral-100 hover:text-brand">
+							<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>
+						</a>
+						<a href="/escuchar/" aria-label="Escuchá todas las notas, una tras otra" title="Todas las notas en lista" class="flex h-9 w-9 items-center justify-center rounded-full text-ink hover:bg-neutral-100 hover:text-brand">
+							<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h11M4 12h11M4 18h7"/><path d="M17 15v6l4-3z" fill="currentColor"/></svg>
+						</a>
+					</div>
+				</details>
+			</div>
+		</div>
+	)
+}
+
+<style>
+	.barra {
+		-webkit-appearance: none;
+		appearance: none;
+		height: 4px;
+		border-radius: 999px;
+		background: linear-gradient(to right, var(--color-brand) var(--avance, 0%), #e5e5e0 var(--avance, 0%));
+		cursor: pointer;
+	}
+	.barra::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+		background: var(--color-brand);
+		border: 2px solid #fff;
+		box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+	}
+	.resaltado {
+		box-shadow: inset 0 0 0 2px var(--color-brand), 0 0 0 6px rgba(208, 2, 27, 0.12);
+	}
+	.mas-audio summary::-webkit-details-marker { display: none; }
+	.barra::-moz-range-thumb {
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+		background: var(--color-brand);
+		border: 2px solid #fff;
+	}
+</style>
+
+<script is:inline>
+	(function () {
+		document.querySelectorAll('[data-escuchar]').forEach(function (caja) {
+			var audio = caja.querySelector('[data-audio]');
+			var play = caja.querySelector('[data-play]');
+			var iPlay = caja.querySelector('[data-icono-play]');
+			var iPausa = caja.querySelector('[data-icono-pausa]');
+			var barra = caja.querySelector('[data-barra]');
+			var actual = caja.querySelector('[data-actual]');
+			var total = caja.querySelector('[data-total]');
+			var vel = caja.querySelector('[data-velocidad]');
+			var velocidades = [1, 1.25, 1.5, 0.85];
+			var iv = 0;
+			var arrastrando = false;
+
+			function mmss(s) {
+				s = Math.max(0, Math.floor(s || 0));
+				return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+			}
+			function pintar() {
+				var max = Number(barra.max) || 1;
+				barra.style.setProperty('--avance', (Number(barra.value) / max) * 100 + '%');
+			}
+			function estado(sonando) {
+				iPlay.classList.toggle('hidden', sonando);
+				iPausa.classList.toggle('hidden', !sonando);
+				play.setAttribute('aria-label', sonando ? 'Pausar' : 'Escuchar la nota');
+			}
+
+			play.addEventListener('click', function () {
+				if (audio.paused) {
+					// Si hay otra nota sonando en la página, se pausa
+					document.querySelectorAll('[data-audio]').forEach(function (a) { if (a !== audio) a.pause(); });
+					audio.play().catch(function () {});
+				} else {
+					audio.pause();
+				}
+			});
+			audio.addEventListener('play', function () { estado(true); });
+			audio.addEventListener('pause', function () { estado(false); });
+			audio.addEventListener('ended', function () { estado(false); audio.currentTime = 0; });
+			audio.addEventListener('loadedmetadata', function () {
+				if (isFinite(audio.duration)) {
+					barra.max = Math.round(audio.duration);
+					total.textContent = mmss(audio.duration);
+				}
+			});
+			audio.addEventListener('timeupdate', function () {
+				if (arrastrando) return;
+				barra.value = Math.floor(audio.currentTime);
+				actual.textContent = mmss(audio.currentTime);
+				pintar();
+			});
+
+			barra.addEventListener('input', function () {
+				arrastrando = true;
+				actual.textContent = mmss(barra.value);
+				pintar();
+			});
+			barra.addEventListener('change', function () {
+				arrastrando = false;
+				audio.currentTime = Number(barra.value);
+				if (audio.paused) audio.play().catch(function () {});
+			});
+
+			vel.addEventListener('click', function () {
+				iv = (iv + 1) % velocidades.length;
+				audio.playbackRate = velocidades[iv];
+				vel.textContent = String(velocidades[iv]).replace('.', ',') + 'x';
+			});
+
+			// ── Compartir ──────────────────────────────────────────────
+			// 1) Celular: manda el archivo de audio (WhatsApp, Telegram...) con el link de la nota.
+			// 2) Si no se pueden mandar archivos: comparte el link que abre la nota en el reproductor.
+			// 3) Compu sin menú de compartir: copia ese link.
+			var btn = caja.querySelector('[data-compartir]');
+			var btnTexto = caja.querySelector('[data-compartir-texto]');
+			var titulo = caja.getAttribute('data-titulo') || document.title;
+			var link = location.origin + location.pathname + '#escuchar';
+			var archivo = null;
+
+			function aviso(t) {
+				btnTexto.textContent = t; btn.title = t;
+				setTimeout(function () { btnTexto.textContent = 'Compartir audio'; btn.title = 'Compartir audio'; }, 2500);
+			}
+
+			btn.addEventListener('click', function () {
+				var texto = '🎧 ' + titulo + '\nEscuchala en Diario Federal: ' + link;
+				var conArchivo = archivo
+					? Promise.resolve(archivo)
+					: fetch(audio.currentSrc || audio.getAttribute('src'))
+						.then(function (r) { return r.blob(); })
+						.then(function (b) {
+							archivo = new File([b], (caja.getAttribute('data-slug') || 'nota') + '.mp3', { type: 'audio/mpeg' });
+							return archivo;
+						});
+
+				if (navigator.share) {
+					btnTexto.textContent = 'Preparando…';
+					conArchivo
+						.then(function (f) {
+							if (navigator.canShare && navigator.canShare({ files: [f] })) {
+								return navigator.share({ files: [f], title: titulo, text: texto });
+							}
+							return navigator.share({ title: titulo, text: texto, url: link });
+						})
+						.catch(function (e) {
+							if (e && e.name === 'AbortError') return; // el lector canceló
+							return navigator.share({ title: titulo, text: texto, url: link }).catch(function () {});
+						})
+						.then(function () { btnTexto.textContent = 'Compartir audio'; });
+					return;
+				}
+
+				if (navigator.clipboard) {
+					navigator.clipboard.writeText(link).then(function () { aviso('Link copiado'); }, function () { prompt('Copiá el link:', link); });
+				} else {
+					prompt('Copiá el link:', link);
+				}
+			});
+
+			// Quien entra por un link compartido (#escuchar) cae directo en el reproductor
+			if (location.hash === '#escuchar') {
+				setTimeout(function () {
+					caja.scrollIntoView({ behavior: 'smooth', block: 'center' });
+					caja.classList.add('resaltado');
+					play.focus({ preventScroll: true });
+					setTimeout(function () { caja.classList.remove('resaltado'); }, 4000);
+				}, 300);
+			}
+		});
+	})();
+</script>

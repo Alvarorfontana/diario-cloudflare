@@ -1,0 +1,153 @@
+---
+// Import the global.css file here so that it is included on
+// all pages through the use of the <BaseHead /> component.
+import '../styles/global.css';
+import type { ImageMetadata } from 'astro';
+import FallbackImage from '../assets/blog-placeholder-1.jpg';
+import { SITE_TITLE } from '../consts';
+
+interface Props {
+	title: string;
+	description: string;
+	image?: ImageMetadata | string;
+	// Imagen propia ya recortada a 1200x630 (p. ej. /api/og/<slug>.jpg).
+	// Cuando se pasa, tiene prioridad para las vistas previas en redes.
+	ogImage?: string;
+	publishedTime?: Date;
+	author?: string;
+	section?: string;
+}
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const baseURL = Astro.site ?? Astro.url.origin;
+
+const { title, description, image = FallbackImage, ogImage, publishedTime, author, section } = Astro.props;
+
+// Handle both ImageMetadata and string URLs
+const isExternalImage = typeof image === 'string';
+const rawImageURL = isExternalImage
+	? new URL(image, baseURL)
+	: new URL(image.src, baseURL);
+// Fotos alojadas en otros sitios: WhatsApp suele no poder bajarlas (bloqueos o peso).
+// Las pasamos por el optimizador de Vercel para servirlas desde nuestro dominio, a 1200 px.
+const siteHost = new URL(baseURL.toString()).host.replace(/^www\./, '');
+const esDeOtroSitio = isExternalImage && rawImageURL.host.replace(/^www\./, '') !== siteHost && /^https?:\/\//.test(image as string);
+const imageURL = esDeOtroSitio
+	? new URL(`/_vercel/image?url=${encodeURIComponent(rawImageURL.href)}&w=1200&q=75`, baseURL)
+	: rawImageURL;
+
+// Para las redes sociales priorizamos la URL explícita de Open Graph de cada nota.
+// En artículos con foto externa es /api/og/<slug>.jpg, una imagen JPEG propia
+// de 1200x630; no dependemos del optimizador de Vercel para WhatsApp.
+const tieneOgImage = typeof ogImage === 'string' && ogImage.length > 0;
+const previewURL = tieneOgImage ? new URL(ogImage as string, baseURL) : imageURL;
+const backupPreviewURL = previewURL.href !== imageURL.href ? imageURL : undefined;
+
+const imageFormat = previewURL.pathname.toLowerCase().endsWith('.png')
+	? 'png'
+	: previewURL.pathname.toLowerCase().endsWith('.webp')
+		? 'webp'
+		: 'jpeg';
+// Para fotos subidas desde el panel no se conocen las medidas reales: mejor no declararlas
+// que declarar unas falsas (WhatsApp puede deformar o descartar la imagen).
+// Con la imagen propia (ogImage) sí conocemos las medidas exactas: 1200x630.
+// Datos estructurados (JSON-LD) para Google, Bing y asistentes de IA
+const siteOrigin = new URL(baseURL.toString()).origin;
+const sufijo = ` | ${SITE_TITLE}`;
+const tituloLimpio = title.endsWith(sufijo) ? title.slice(0, -sufijo.length) : title;
+const jsonLd = publishedTime
+	? {
+			'@context': 'https://schema.org',
+			'@type': 'NewsArticle',
+			headline: tituloLimpio.slice(0, 110),
+			description,
+			image: [previewURL.href],
+			datePublished: publishedTime.toISOString(),
+			dateModified: publishedTime.toISOString(),
+			inLanguage: 'es-AR',
+			...(section ? { articleSection: section } : {}),
+			author: [{ '@type': 'Person', name: author || 'Redacción' }],
+			publisher: { '@type': 'NewsMediaOrganization', name: SITE_TITLE, url: siteOrigin },
+			mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalURL.href },
+		}
+	: {
+			'@context': 'https://schema.org',
+			'@graph': [
+				{ '@type': 'NewsMediaOrganization', '@id': `${siteOrigin}/#organization`, name: SITE_TITLE, url: siteOrigin },
+				{
+					'@type': 'WebSite',
+					'@id': `${siteOrigin}/#website`,
+					url: siteOrigin,
+					name: SITE_TITLE,
+					inLanguage: 'es-AR',
+					publisher: { '@id': `${siteOrigin}/#organization` },
+				},
+			],
+		};
+const jsonLdText = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
+const imageWidth = !esDeOtroSitio && !isExternalImage ? String(image.width) : undefined;
+const imageHeight = !esDeOtroSitio && !isExternalImage ? String(image.height) : undefined;
+---
+
+<!-- Global Metadata -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="theme-color" content="#ffffff" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
+<!-- App instalable (PWA) -->
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="EL DIARIO" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<link rel="sitemap" href="/sitemap-index.xml" />
+<link
+	rel="alternate"
+	type="application/rss+xml"
+	title={SITE_TITLE}
+	href={new URL('rss.xml', Astro.site)}
+/>
+<link rel="alternate" type="application/rss+xml" title="EL DIARIO · Podcast" href={new URL('podcast.xml', Astro.site)} />
+<meta name="generator" content={Astro.generator} />
+
+
+<!-- Canonical URL -->
+<link rel="canonical" href={canonicalURL.href} />
+
+<!-- Primary Meta Tags -->
+<title>{title}</title>
+<meta name="description" content={description} />
+
+<!-- Open Graph / Facebook / WhatsApp / Telegram -->
+<meta property="og:type" content={publishedTime ? 'article' : 'website'} />
+<meta property="og:url" content={canonicalURL.href} />
+<meta property="og:site_name" content={SITE_TITLE} />
+<meta property="og:title" content={tituloLimpio} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={previewURL.href} />
+{backupPreviewURL && <meta property="og:image" content={backupPreviewURL.href} />}
+<meta property="og:image:alt" content={description} />
+<meta property="og:image:type" content={`image/${imageFormat}`} />
+<meta property="og:image:secure_url" content={previewURL.href} />
+{imageWidth && <meta property="og:image:width" content={imageWidth} />}
+{imageHeight && <meta property="og:image:height" content={imageHeight} />}
+{
+	publishedTime && (
+		<meta property="article:published_time" content={publishedTime.toISOString()} />
+	)
+}
+{publishedTime && author && <meta property="article:author" content={author} />}
+{publishedTime && section && <meta property="article:section" content={section} />}
+
+<meta property="og:locale" content="es_AR" />
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+<link rel="alternate" type="application/xml" title="Mapa de notas" href="/sitemap-articulos.xml" />
+<script type="application/ld+json" set:html={jsonLdText} is:inline></script>
+
+<!-- Twitter / X -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={previewURL.href} />
