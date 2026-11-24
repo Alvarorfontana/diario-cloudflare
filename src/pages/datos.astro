@@ -1,0 +1,800 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE_TITLE } from '../consts';
+import { datosIndustria, datosClima } from '../lib/observatorios';
+import LabAreas from '../components/LabAreas.astro';
+
+// Se arma en cada visita (con caché de una hora en Vercel) para que los datos del proceso diario
+// aparezcan sin esperar un nuevo deploy: los commits automáticos no disparan deploy en Vercel.
+export const prerender = false;
+
+// Copia incluida en el sitio (respaldo si GitHub no responde).
+const incluidos = import.meta.glob('../../data/laboratorio/*.json', { eager: true, import: 'default' }) as Record<string, any>;
+const RAW = 'https://raw.githubusercontent.com/Alvarorfontana/diario/main/data/laboratorio/';
+async function leer(nombre: string) {
+  try {
+    const r = await fetch(RAW + nombre + '.json', { signal: AbortSignal.timeout(4000) });
+    if (r.ok) return await r.json();
+  } catch {}
+  return incluidos[`../../data/laboratorio/${nombre}.json`] ?? null;
+}
+const [ipc, riesgo, dolar, reservas, fmi] = await Promise.all(['inflacion', 'riesgo-pais', 'dolar', 'reservas', 'fmi'].map(leer));
+// Observatorios propios (industria metalúrgica y DOTS): se leen de los archivos que publican sus robots.
+const [industria, clima] = await Promise.all([datosIndustria(), datosClima()]);
+// Seguimiento del RIGI: lo comprometido, lo que entró y qué proyectos ya existían (data/laboratorio/rigi.json).
+const rigi = await leer('rigi');
+const rigiGrupos = rigi ? rigi.grupos.map((g: any) => {
+  const ps = rigi.proyectos.filter((p: any) => p.grupo === g.id);
+  const millones = ps.reduce((s: number, p: any) => s + p.millones, 0);
+  return { ...g, proyectos: ps.sort((a: any, b: any) => b.millones - a.millones), cantidad: ps.length, millones, pct: (millones / rigi.comprometido.millones) * 100 };
+}) : [];
+const rigiPrevios = rigiGrupos.filter((g: any) => g.id === 'funcionaba' || g.id === 'enmarcha');
+const rigiPreviosMillones = rigiPrevios.reduce((s: number, g: any) => s + g.millones, 0);
+const rigiPreviosCantidad = rigiPrevios.reduce((s: number, g: any) => s + g.cantidad, 0);
+const rigiMaxCrono = rigi ? Math.max(...rigi.cronograma.map((c: any) => c.millones)) : 1;
+// Agregado: inversión comprometida por provincia y los proyectos más grandes (mismos datos de rigi.json)
+const rigiProvincias = rigi ? Object.entries(rigi.proyectos.reduce((acc: Record<string, { millones: number; cantidad: number }>, p: any) => {
+  const k = p.provincia; acc[k] = acc[k] || { millones: 0, cantidad: 0 }; acc[k].millones += p.millones; acc[k].cantidad += 1; return acc;
+}, {})).map(([provincia, v]: any) => ({ provincia, ...v })).sort((a: any, b: any) => b.millones - a.millones) : [];
+const rigiMaxProv = rigiProvincias.length ? rigiProvincias[0].millones : 1;
+const rigiTop = rigi ? rigi.proyectos.slice().sort((a: any, b: any) => b.millones - a.millones).slice(0, 10) : [];
+const rigiColor = (id: string) => rigi?.grupos.find((g: any) => g.id === id)?.color ?? '#c0392b';
+Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
+
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const mesTexto = (ym: string) => { const [a, m] = ym.split('-'); return `${MESES[Number(m) - 1]} ${a}`; };
+const diaTexto = (f: string) => { const [a, m, d] = f.split('-'); return `${Number(d)}/${Number(m)}/${a.slice(2)}`; };
+const n = (v: number, d = 0) => v.toLocaleString('es-AR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const ultimo = (o: any) => (o?.serie?.length ? o.serie[o.serie.length - 1] : null);
+
+const uIpc = ultimo(ipc), uRiesgo = ultimo(riesgo), uDolar = ultimo(dolar), uRes = ultimo(reservas);
+const brecha = uDolar?.oficial && uDolar?.blue ? ((uDolar.blue / uDolar.oficial - 1) * 100) : null;
+
+// FMI: crecimiento del año en curso y el próximo, por país (tabla y gráfico).
+const anioFmi = fmi?.anio_actual ?? new Date().getFullYear();
+const filasFmi = fmi ? Object.keys(fmi.indicadores.NGDP_RPCH.paises).map((pais) => ({
+  pais,
+  pib: [anioFmi, anioFmi + 1].map((a) => fmi.indicadores.NGDP_RPCH.paises[pais]?.[a] ?? null),
+  inflacion: fmi.indicadores.PCPIPCH.paises[pais]?.[anioFmi] ?? null,
+  desempleo: fmi.indicadores.LUR.paises[pais]?.[anioFmi] ?? null,
+})) : [];
+
+const datosGraficos = {
+  ipc: ipc ? ipc.serie.slice(-36) : [],
+  riesgo: riesgo ? riesgo.serie : [],
+  dolar: dolar ? dolar.serie : [],
+  reservas: reservas ? reservas.serie : [],
+  fmi: { anio: anioFmi, filas: filasFmi },
+  industria,
+  clima,
+};
+---
+
+<BaseLayout
+  title={`Laboratorio de datos | ${SITE_TITLE}`}
+  description="Gráficos, indicadores económicos, mapas y seguimiento de acontecimientos de Diario Federal."
+  section="Datos"
+>
+  <div class="mx-auto max-w-6xl">
+    <header class="border-b border-neutral-200 pb-6">
+      <p class="text-xs font-extrabold tracking-[0.16em] text-brand uppercase">Diario Federal · Periodismo de datos</p>
+      <div class="mt-2 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 class="font-display text-4xl font-extrabold tracking-tight text-ink sm:text-5xl">Laboratorio de datos</h1>
+          <p class="mt-3 max-w-3xl text-base leading-relaxed text-neutral-600">La actualidad explicada con cifras, mapas y evidencia. Indicadores comparables, visualizaciones electorales y seguimiento geográfico de la cobertura internacional.</p>
+        </div>
+        <span class="rounded-full border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-neutral-600">Fuentes identificadas · Datos abiertos</span>
+      </div>
+      <LabAreas />
+    </header>
+
+    <!-- MONITOR DEL CONGRESO: área propia con página aparte (/datos/congreso/) -->
+    <a href="/datos/congreso/" class="mt-7 grid gap-3 rounded-xl border border-ink bg-white p-5 transition hover:bg-neutral-50 sm:grid-cols-[1fr_auto] sm:items-center">
+      <div>
+        <p class="text-[11px] font-extrabold tracking-widest text-brand uppercase">Nuevo · Monitor del Congreso</p>
+        <h2 class="mt-1 font-display text-2xl font-bold text-ink">Qué hacen los diputados y senadores, con datos</h2>
+        <p class="bajada mt-1 max-w-3xl">Leyes por año desde 1983, el recinto banca por banca, asistencia del Senado y la ficha de cada legislador. Con un explorador para armar gráficos propios.</p>
+      </div>
+      <span class="font-sans text-sm font-bold text-brand underline underline-offset-4">Abrir el monitor →</span>
+    </a>
+
+
+    <!-- ARGENTINA EN DATOS: series que se actualizan solas todos los días -->
+    {(uIpc || uRiesgo || uDolar || uRes) && (
+      <section class="mt-7" aria-labelledby="arg-datos">
+        <div class="flex flex-wrap items-end justify-between gap-2">
+          <h2 id="arg-datos" class="font-display text-2xl font-extrabold text-ink">Argentina en datos</h2>
+          <p class="text-xs text-neutral-500">Se actualiza todos los días con fuentes oficiales</p>
+        </div>
+
+        <div class="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
+          {uIpc && (
+            <div class="rounded-xl border border-neutral-200 bg-white p-4">
+              <p class="text-xs font-semibold text-neutral-500">Inflación mensual</p>
+              <p class="mt-1 font-display text-3xl font-extrabold text-ink tabular-nums">{n(uIpc.mensual, 1)} %</p>
+              <p class="mt-1 text-xs text-neutral-500">{mesTexto(uIpc.fecha)} · INDEC</p>
+            </div>
+          )}
+          {uIpc?.interanual != null && (
+            <div class="rounded-xl border border-neutral-200 bg-white p-4">
+              <p class="text-xs font-semibold text-neutral-500">Inflación interanual</p>
+              <p class="mt-1 font-display text-3xl font-extrabold text-ink tabular-nums">{n(uIpc.interanual, 1)} %</p>
+              <p class="mt-1 text-xs text-neutral-500">{mesTexto(uIpc.fecha)} · INDEC</p>
+            </div>
+          )}
+          {uRiesgo && (
+            <div class="rounded-xl border border-neutral-200 bg-white p-4">
+              <p class="text-xs font-semibold text-neutral-500">Riesgo país</p>
+              <p class="mt-1 font-display text-3xl font-extrabold text-ink tabular-nums">{n(uRiesgo.valor)}</p>
+              <p class="mt-1 text-xs text-neutral-500">puntos básicos · {diaTexto(uRiesgo.fecha)}</p>
+            </div>
+          )}
+          {uDolar && (
+            <div class="rounded-xl border border-neutral-200 bg-white p-4">
+              <p class="text-xs font-semibold text-neutral-500">Dólar oficial / blue</p>
+              <p class="mt-1 font-display text-xl font-extrabold text-ink tabular-nums sm:text-2xl">${n(uDolar.oficial)} <span class="text-neutral-400">/</span> ${n(uDolar.blue)}</p>
+              <p class="mt-1 text-xs text-neutral-500">{brecha !== null ? `brecha ${n(brecha, 1)} % · ` : ''}{diaTexto(uDolar.fecha)}</p>
+            </div>
+          )}
+          {uRes && (
+            <div class="col-span-2 rounded-xl border border-neutral-200 bg-white p-4 lg:col-span-1">
+              <p class="text-xs font-semibold text-neutral-500">Reservas del BCRA</p>
+              <p class="mt-1 font-display text-3xl font-extrabold text-ink tabular-nums">US$ {n(uRes.valor)} M</p>
+              <p class="mt-1 text-xs text-neutral-500">{diaTexto(uRes.fecha)} · BCRA</p>
+            </div>
+          )}
+        </div>
+
+        <div class="mt-4 grid gap-4 md:grid-cols-2">
+          {ipc && (
+            <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+              <h3 class="font-display text-lg font-bold text-ink">Inflación mes a mes</h3>
+              <p class="text-sm text-neutral-500">Variación mensual del IPC nacional · últimos 36 meses</p>
+              <div id="g-ipc" class="mt-3 h-64 w-full" role="img" aria-label="Barras de la inflación mensual de los últimos 36 meses"></div>
+              <p class="text-xs text-neutral-500">Fuente: <a class="underline" href={ipc.fuente_url} target="_blank" rel="noopener noreferrer">{ipc.fuente}</a></p>
+            </article>
+          )}
+          {riesgo && (
+            <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+              <h3 class="font-display text-lg font-bold text-ink">Riesgo país</h3>
+              <p class="text-sm text-neutral-500">Puntos básicos · desde {riesgo.serie[0].fecha.slice(0, 4)}</p>
+              <div id="g-riesgo" class="mt-3 h-64 w-full" role="img" aria-label="Línea del riesgo país en puntos básicos"></div>
+              <p class="text-xs text-neutral-500">Fuente: <a class="underline" href={riesgo.fuente_url} target="_blank" rel="noopener noreferrer">{riesgo.fuente}</a></p>
+            </article>
+          )}
+          {dolar && (
+            <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+              <h3 class="font-display text-lg font-bold text-ink">Dólar oficial, blue y MEP</h3>
+              <p class="text-sm text-neutral-500">Cotización de venta en pesos · desde {dolar.serie[0].fecha.slice(0, 4)}</p>
+              <div id="g-dolar" class="mt-3 h-64 w-full" role="img" aria-label="Líneas del dólar oficial, blue y MEP"></div>
+              <p class="text-xs text-neutral-500">Fuente: <a class="underline" href={dolar.fuente_url} target="_blank" rel="noopener noreferrer">{dolar.fuente}</a></p>
+            </article>
+          )}
+          {reservas && (
+            <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+              <h3 class="font-display text-lg font-bold text-ink">Reservas internacionales</h3>
+              <p class="text-sm text-neutral-500">Millones de dólares · desde {reservas.serie[0].fecha.slice(0, 4)}</p>
+              <div id="g-reservas" class="mt-3 h-64 w-full" role="img" aria-label="Línea de las reservas internacionales del BCRA"></div>
+              <p class="text-xs text-neutral-500">Fuente: <a class="underline" href={reservas.fuente_url} target="_blank" rel="noopener noreferrer">{reservas.fuente}</a></p>
+            </article>
+          )}
+        </div>
+
+        {filasFmi.length > 0 && (
+          <article class="mt-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+            <h3 class="font-display text-lg font-bold text-ink">La región según el FMI</h3>
+            <p class="text-sm text-neutral-500">Crecimiento del PIB proyectado para {anioFmi} y {anioFmi + 1} (%)</p>
+            <div id="g-fmi" class="mt-3 h-72 w-full" role="img" aria-label={`Barras del crecimiento proyectado por el FMI para ${anioFmi} y ${anioFmi + 1} en seis países`}></div>
+            <div class="mt-3 overflow-x-auto">
+              <table class="w-full min-w-[460px] text-sm tabular-nums">
+                <thead><tr class="border-b border-neutral-200 text-left text-xs text-neutral-500"><th class="py-2 font-semibold">País</th><th class="py-2 text-right font-semibold">PIB {anioFmi}</th><th class="py-2 text-right font-semibold">PIB {anioFmi + 1}</th><th class="py-2 text-right font-semibold">Inflación {anioFmi}</th><th class="py-2 text-right font-semibold">Desempleo {anioFmi}</th></tr></thead>
+                <tbody>
+                  {filasFmi.map((f) => (
+                    <tr class={`border-b border-neutral-100 ${f.pais === 'Argentina' ? 'font-bold text-ink' : 'text-neutral-700'}`}>
+                      <td class="py-2">{f.pais}</td>
+                      <td class="py-2 text-right">{f.pib[0] != null ? `${n(f.pib[0], 1)} %` : '–'}</td>
+                      <td class="py-2 text-right">{f.pib[1] != null ? `${n(f.pib[1], 1)} %` : '–'}</td>
+                      <td class="py-2 text-right">{f.inflacion != null ? `${n(f.inflacion, 1)} %` : '–'}</td>
+                      <td class="py-2 text-right">{f.desempleo != null ? `${n(f.desempleo, 1)} %` : '–'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p class="mt-2 text-xs text-neutral-500">Fuente: <a class="underline" href={fmi.fuente_url} target="_blank" rel="noopener noreferrer">{fmi.fuente}</a>. Los valores del año en curso y siguientes son proyecciones.</p>
+          </article>
+        )}
+        <script type="application/json" id="lab-datos" set:html={JSON.stringify(datosGraficos)}></script>
+      </section>
+    )}
+
+    <section class="mt-8 grid gap-4 md:grid-cols-2" aria-label="Indicadores económicos">
+      <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <div><p class="text-[11px] font-extrabold tracking-widest text-brand uppercase">Comparación histórica</p><h2 class="mt-1 font-display text-xl font-bold text-ink">Crecimiento del PIB</h2><p class="mt-1 text-sm text-neutral-500">Variación anual · Argentina, Brasil, Chile y Uruguay</p></div>
+          <span class="text-xs text-neutral-400">Banco Mundial</span>
+        </div>
+        <div id="chart-pib" class="mt-4 h-72 w-full" role="img" aria-label="Gráfico de crecimiento anual del producto interno bruto de cuatro países"></div>
+        <p id="status-pib" class="text-xs text-neutral-500" aria-live="polite">Consultando la serie histórica…</p>
+      </article>
+      <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <div><p class="text-[11px] font-extrabold tracking-widest text-brand uppercase">Comparación histórica</p><h2 class="mt-1 font-display text-xl font-bold text-ink">Inflación anual</h2><p class="mt-1 text-sm text-neutral-500">Precios al consumidor · desde 2000 · cuatro países</p></div>
+          <span class="text-xs text-neutral-400">Banco Mundial</span>
+        </div>
+        <div id="chart-inflacion" class="mt-4 h-72 w-full" role="img" aria-label="Gráfico de inflación anual comparada de cuatro países"></div>
+        <p id="status-inflacion" class="text-xs text-neutral-500" aria-live="polite">Consultando la serie histórica…</p>
+      </article>
+    </section>
+
+    <section id="bloque-mapa" class="mt-8 hidden rounded-xl border border-neutral-200 bg-white p-4 sm:p-5" aria-labelledby="mapa-titulo">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div><p class="text-[11px] font-extrabold tracking-widest text-brand uppercase">Seguimiento internacional</p><h2 id="mapa-titulo" class="mt-1 font-display text-2xl font-bold text-ink">Mapa de menciones geográficas en las noticias</h2><p class="mt-1 max-w-3xl text-sm text-neutral-600">Exploración de lugares mencionados en la cobertura internacional de las últimas 24 horas, a partir de GDELT GEO.</p></div>
+        <span id="status-mapa" class="text-xs font-semibold text-neutral-500" aria-live="polite">Preparando mapa…</span>
+      </div>
+      <div id="mapa-cobertura" class="mt-4 h-[420px] w-full overflow-hidden rounded-lg bg-neutral-100"></div>
+      <p class="mt-3 text-xs leading-relaxed text-neutral-500">Importante: los puntos representan lugares mencionados en artículos periodísticos; no certifican que allí haya ocurrido un hecho ni sustituyen la verificación editorial. GDELT procesa cobertura de medios y puede incluir menciones contextuales. Mapa base: OpenStreetMap.</p>
+    </section>
+
+    <section id="internacional" class="mt-8 grid scroll-mt-20 gap-4 md:grid-cols-2">
+      <a href="/elecciones-eeuu/" class="group rounded-xl border border-neutral-200 bg-ink p-5 text-white transition hover:bg-neutral-800">
+        <p class="text-[11px] font-extrabold tracking-widest text-red-300 uppercase">Visualización electoral</p>
+        <h2 class="mt-2 font-display text-2xl font-bold">Elecciones de Estados Unidos 2026</h2>
+        <p class="mt-2 text-sm leading-relaxed text-white/75">Mapa por estado, seguimiento de contiendas y fuentes de resultados diferenciadas.</p>
+        <span class="mt-5 inline-block text-sm font-bold text-white underline underline-offset-4">Abrir tablero electoral →</span>
+      </a>
+      <a href="/brasil-2026/" class="group rounded-xl border border-neutral-200 bg-[#f5f4ef] p-5 text-ink transition hover:bg-white">
+        <p class="text-[11px] font-extrabold tracking-widest text-brand uppercase">Elecciones · América Latina</p>
+        <h2 class="mt-2 font-display text-2xl font-bold">Brasil 2026</h2>
+        <p class="mt-2 text-sm leading-relaxed text-neutral-600">Cobertura y seguimiento electoral de Brasil, con información del proceso y sus resultados.</p>
+        <span class="mt-5 inline-block text-sm font-bold text-brand underline underline-offset-4">Abrir cobertura →</span>
+      </a>
+    </section>
+
+    <!-- OBSERVATORIOS PROPIOS: industria metalúrgica y DOTS (clima y ríos). Se actualizan solos con sus robots. -->
+    {(industria || clima) && (
+      <section id="observatorios" class="mt-8 scroll-mt-20" aria-labelledby="obs-titulo">
+        <div class="flex flex-wrap items-end justify-between gap-2">
+          <h2 id="obs-titulo" class="font-display text-2xl font-extrabold text-ink">Observatorios de Diario Federal</h2>
+          <p class="text-xs text-neutral-500">Datos propios que se actualizan solos · con su fuente</p>
+        </div>
+
+        {industria && (
+          <div id="industria" class="mt-4 scroll-mt-20">
+            <p class="text-[11px] font-extrabold tracking-widest text-brand uppercase">Industria metalúrgica</p>
+            <p class="mt-1 max-w-3xl text-sm leading-relaxed text-neutral-600"><strong class="text-ink">Qué es:</strong> el observatorio de la industria metalúrgica de Diario Federal sigue cómo están las fábricas del sector en todo el país. Junta datos públicos de producción, uso de la capacidad, empleo y situación de cada planta (cierres, despidos, suspensiones). Las fuentes son el INDEC, la Cámara Argentina del Acero, el Boletín Oficial, el Banco Central y la prensa. Cada número dice de dónde sale y de qué mes es.</p>
+            <div class="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {industria.ucMetalmecanica.at(-1) && (
+                <div class="rounded-xl border border-neutral-200 bg-white p-4">
+                  <p class="text-xs font-semibold text-neutral-500">Capacidad usada · metalmecánica</p>
+                  <p class="mt-1 font-display text-3xl font-extrabold text-ink tabular-nums">{n(industria.ucMetalmecanica.at(-1)!.valor, 1)} %</p>
+                  <p class="mt-1 text-xs text-neutral-500">{mesTexto(industria.ucMetalmecanica.at(-1)!.periodo)} · INDEC</p>
+                </div>
+              )}
+              {industria.ucGeneral.at(-1) && (
+                <div class="rounded-xl border border-neutral-200 bg-white p-4">
+                  <p class="text-xs font-semibold text-neutral-500">Capacidad usada · toda la industria</p>
+                  <p class="mt-1 font-display text-3xl font-extrabold text-ink tabular-nums">{n(industria.ucGeneral.at(-1)!.valor, 1)} %</p>
+                  <p class="mt-1 text-xs text-neutral-500">{mesTexto(industria.ucGeneral.at(-1)!.periodo)} · INDEC</p>
+                </div>
+              )}
+              {industria.acero.at(-1) && (
+                <div class="rounded-xl border border-neutral-200 bg-white p-4">
+                  <p class="text-xs font-semibold text-neutral-500">Acero crudo producido</p>
+                  <p class="mt-1 font-display text-3xl font-extrabold text-ink tabular-nums">{n(industria.acero.at(-1)!.crudo / 1000)} mil t</p>
+                  <p class="mt-1 text-xs text-neutral-500">{mesTexto(industria.acero.at(-1)!.periodo)}{industria.acero.at(-1)!.varInteranual != null ? ` · ${industria.acero.at(-1)!.varInteranual! > 0 ? '+' : ''}${n(industria.acero.at(-1)!.varInteranual!, 1)} % interanual` : ''} · Cámara Argentina del Acero</p>
+                </div>
+              )}
+              {industria.plantasTotal > 0 && (
+                <div class="rounded-xl border border-neutral-200 bg-white p-4">
+                  <p class="text-xs font-semibold text-neutral-500">Plantas en alerta</p>
+                  <p class="mt-1 font-display text-3xl font-extrabold text-ink tabular-nums">{industria.plantasRojo + industria.plantasAmarillo} <span class="text-base font-semibold text-neutral-500">de {industria.plantasTotal}</span></p>
+                  <p class="mt-1 text-xs text-neutral-500">{industria.plantasRojo} en rojo y {industria.plantasAmarillo} en amarillo · cierres, despidos y suspensiones informados</p>
+                </div>
+              )}
+            </div>
+            <div class="mt-4 grid gap-4 md:grid-cols-2">
+              <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+                <h3 class="font-display text-lg font-bold text-ink">¿Cuánto de las fábricas se usa?</h3>
+                <p class="text-sm text-neutral-500">Capacidad instalada en uso · últimos 36 meses</p>
+                <div id="g-capacidad" class="mt-3 h-64 w-full" role="img" aria-label="Líneas de capacidad usada en la metalmecánica, los metales básicos y toda la industria"></div>
+                <p class="text-xs text-neutral-500"><strong class="font-semibold text-neutral-700">Fuente: Observatorio de la Industria Metalúrgica · Diario Federal</strong><br /><span class="text-[11px] text-neutral-400">Elaborado con datos del INDEC (utilización de la capacidad instalada).</span></p>
+              </article>
+              {industria.acero.length > 0 && (
+                <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+                  <h3 class="font-display text-lg font-bold text-ink">Producción de acero crudo</h3>
+                  <p class="text-sm text-neutral-500">Miles de toneladas por mes</p>
+                  <div id="g-acero" class="mt-3 h-64 w-full" role="img" aria-label="Barras de producción mensual de acero crudo"></div>
+                  <p class="text-xs text-neutral-500"><strong class="font-semibold text-neutral-700">Fuente: Observatorio de la Industria Metalúrgica · Diario Federal</strong><br /><span class="text-[11px] text-neutral-400">Elaborado con los informes mensuales de la Cámara Argentina del Acero.</span></p>
+                </article>
+              )}
+            </div>
+            <div class="mt-4 grid gap-4 md:grid-cols-2">
+              {industria.ramas.length > 0 && (
+                <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+                  <h3 class="font-display text-lg font-bold text-ink">Producción por rama</h3>
+                  <p class="text-sm text-neutral-500">Cuánto cambió frente al mismo mes del año anterior{industria.ramasPeriodo ? ` · ${mesTexto(industria.ramasPeriodo)}` : ''}</p>
+                  <div id="g-ramas" class="mt-3 h-80 w-full" role="img" aria-label="Barras horizontales con la variación interanual de la producción de cada rama metalúrgica"></div>
+                  <p class="text-xs text-neutral-500"><strong class="font-semibold text-neutral-700">Fuente: Observatorio de la Industria Metalúrgica · Diario Federal</strong><br /><span class="text-[11px] text-neutral-400">Elaborado con el índice de producción industrial (IPI) del INDEC.</span></p>
+                </article>
+              )}
+              {industria.empleo.length > 0 && (
+                <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+                  <h3 class="font-display text-lg font-bold text-ink">Empleo en la metalurgia</h3>
+                  <p class="text-sm text-neutral-500">Puestos de trabajo registrados del sector privado, por trimestre · sin terminales automotrices</p>
+                  <div id="g-empleo" class="mt-3 h-80 w-full" role="img" aria-label="Línea de puestos de trabajo registrados en la metalurgia por trimestre"></div>
+                  <p class="text-xs text-neutral-500"><strong class="font-semibold text-neutral-700">Fuente: Observatorio de la Industria Metalúrgica · Diario Federal</strong><br /><span class="text-[11px] text-neutral-400">Elaborado con datos del Ministerio de Capital Humano (OEDE) sobre registros del SIPA.</span></p>
+                </article>
+              )}
+              {industria.importaciones.length > 0 && (
+                <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+                  <h3 class="font-display text-lg font-bold text-ink">Importaciones que compiten con la industria local</h3>
+                  <p class="text-sm text-neutral-500">Acero, aluminio, herramientas, maquinaria, línea blanca, autopartes y equipos eléctricos · millones de dólares por mes</p>
+                  <div id="g-impo" class="mt-3 h-64 w-full" role="img" aria-label="Barras de importaciones metalúrgicas mensuales en millones de dólares"></div>
+                  <p class="text-xs text-neutral-500"><strong class="font-semibold text-neutral-700">Fuente: Observatorio de la Industria Metalúrgica · Diario Federal</strong><br /><span class="text-[11px] text-neutral-400">Elaborado con datos de comercio exterior del INDEC.</span></p>
+                </article>
+              )}
+              {industria.maquinaria.length > 0 && (
+                <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+                  <h3 class="font-display text-lg font-bold text-ink">Maquinaria agrícola: nacional o importada</h3>
+                  <p class="text-sm text-neutral-500">Tractores, cosechadoras e implementos vendidos por trimestre (unidades)</p>
+                  <div id="g-maquinaria" class="mt-3 h-64 w-full" role="img" aria-label="Barras apiladas de maquinaria agrícola vendida, nacional e importada"></div>
+                  <p class="text-xs text-neutral-500"><strong class="font-semibold text-neutral-700">Fuente: Observatorio de la Industria Metalúrgica · Diario Federal</strong><br /><span class="text-[11px] text-neutral-400">Elaborado con datos de maquinaria agrícola del INDEC.</span></p>
+                </article>
+              )}
+            </div>
+          </div>
+        )}
+
+        {clima && (
+          <div id="clima" class="mt-7 scroll-mt-20">
+            <p class="text-[11px] font-extrabold tracking-widest text-brand uppercase">DOTS · Clima y ríos</p>
+            <p class="mt-1 max-w-3xl text-sm leading-relaxed text-neutral-600"><strong class="text-ink">Qué es:</strong> DOTS es el observatorio agroclimático y satelital de Diario Federal. Sigue el clima, las lluvias, El Niño y la altura de los ríos de la Cuenca del Plata (Paraná, Uruguay, Paraguay e Iguazú), con imágenes de satélite y datos de organismos como la NOAA de Estados Unidos y los servicios hidrológicos de la región. Sirve para anticipar crecidas, sequías y su impacto en el campo y en las ciudades ribereñas.</p>
+            <div class="mt-2 grid gap-4 md:grid-cols-2">
+              {clima.nino34.length > 0 && (
+                <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+                  <h3 class="font-display text-lg font-bold text-ink">El Niño y La Niña</h3>
+                  <p class="text-sm text-neutral-500">Temperatura del mar en el Pacífico (región Niño 3.4), cuánto se aparta de lo normal. Más de +0,5 °C es El Niño; menos de −0,5 °C es La Niña.</p>
+                  <div id="g-nino" class="mt-3 h-64 w-full" role="img" aria-label="Barras de la anomalía de temperatura del mar en la región Niño 3.4"></div>
+                  <p class="text-xs text-neutral-500"><strong class="font-semibold text-neutral-700">Fuente: DOTS · Observatorio de Diario Federal</strong><br /><span class="text-[11px] text-neutral-400">Elaborado con la temperatura del mar de la NOAA (ERSST v5). Referencia 1991-2020.</span></p>
+                </article>
+              )}
+              {clima.lluviaEnso.length > 0 && (
+                <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+                  <h3 class="font-display text-lg font-bold text-ink">¿Cuánto más llueve con El Niño?</h3>
+                  <p class="text-sm text-neutral-500">Lluvia de octubre a marzo con El Niño fuerte y con La Niña, comparada con los años normales (%), ciudad por ciudad</p>
+                  <div id="g-lluvia-enso" class="mt-3 h-[560px] w-full" role="img" aria-label="Barras por ciudad: cuánto cambia la lluvia de octubre a marzo con El Niño fuerte y con La Niña"></div>
+                  <p class="text-xs text-neutral-500"><strong class="font-semibold text-neutral-700">Fuente: DOTS · Observatorio de Diario Federal</strong><br /><span class="text-[11px] text-neutral-400">Elaborado con datos de Copernicus ERA5 y el índice ONI de la NOAA. Período {clima.lluviaEnsoPeriodo || '1991-2026'}. Desde 1991 hubo pocas temporadas de El Niño fuerte (1997-98, 2015-16 y 2023-24): es una tendencia, no una regla.</span></p>
+                </article>
+              )}
+              {clima.pronostico.length > 0 && (
+                <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+                  <h3 class="font-display text-lg font-bold text-ink">¿Sigue El Niño? El pronóstico</h3>
+                  <p class="text-sm text-neutral-500">Probabilidad de El Niño, neutral o La Niña en los próximos trimestres (cada barra son tres meses: NDE = noviembre, diciembre y enero)</p>
+                  <div id="g-pronostico" class="mt-3 h-64 w-full" role="img" aria-label="Barras apiladas con la probabilidad de El Niño, neutral y La Niña por trimestre"></div>
+                  <p class="text-xs text-neutral-500"><strong class="font-semibold text-neutral-700">Fuente: DOTS · Observatorio de Diario Federal</strong><br /><span class="text-[11px] text-neutral-400">Elaborado con el pronóstico del Centro de Predicción Climática de la NOAA{clima.pronosticoEmitido ? `, emitido ${mesTexto(clima.pronosticoEmitido)}` : ''}.</span></p>
+                </article>
+              )}
+              {clima.focos.length > 0 && (
+                <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+                  <h3 class="font-display text-lg font-bold text-ink">Focos de incendio en la Argentina</h3>
+                  <p class="text-sm text-neutral-500">Puntos de calor detectados por satélite, por mes · el último mes está en curso</p>
+                  <div id="g-focos" class="mt-3 h-64 w-full" role="img" aria-label="Barras de focos de incendio detectados por satélite en la Argentina por mes"></div>
+                  <p class="text-xs text-neutral-500"><strong class="font-semibold text-neutral-700">Fuente: DOTS · Observatorio de Diario Federal</strong><br /><span class="text-[11px] text-neutral-400">Elaborado con detecciones satelitales de focos de calor de la NASA (FIRMS MODIS).</span></p>
+                </article>
+              )}
+              {clima.evacuados.length > 0 && (
+                <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+                  <h3 class="font-display text-lg font-bold text-ink">Evacuados por lluvias e inundaciones</h3>
+                  <p class="text-sm text-neutral-500">Último parte oficial de cada país de la región</p>
+                  <ul class="mt-3 divide-y divide-[#eeeeea]">
+                    {clima.evacuados.map((e) => (
+                      <li class="py-3">
+                        <p class="text-[13px] font-bold text-ink">{e.pais} <span class="font-normal text-neutral-500">· {diaTexto(e.fecha)}</span></p>
+                        <p class="mt-1 text-[14px] leading-snug text-neutral-700">{e.texto}{e.texto.length >= 260 ? '…' : ''}</p>
+                        <p class="mt-1 text-[11px] text-neutral-400">{e.organismo}</p>
+                      </li>
+                    ))}
+                  </ul>
+                  <p class="mt-1 text-xs text-neutral-500"><strong class="font-semibold text-neutral-700">Fuente: DOTS · Observatorio de Diario Federal</strong><br /><span class="text-[11px] text-neutral-400">Elaborado con los partes oficiales de cada país que resume la OPS/OMS. Las cifras son las que informó cada organismo.</span></p>
+                </article>
+              )}
+              {clima.rios && (
+                <article class="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+                  <h3 class="font-display text-lg font-bold text-ink">Ríos de la Cuenca del Plata</h3>
+                  <p class="text-sm text-neutral-500">Estado de las localidades que sigue el observatorio</p>
+                  <div class="mt-3 flex flex-wrap gap-2 text-xs font-bold">
+                    {['Evacuación', 'Alerta', 'Atención', 'Normal'].map((nv) => (
+                      <span class={`rounded-full px-3 py-1 ${nv === 'Evacuación' ? 'bg-[#c8102e] text-white' : nv === 'Alerta' ? 'bg-[#eda100] text-white' : nv === 'Atención' ? 'bg-[#fff4cc] text-[#6b4e00]' : 'bg-[#e8f5ee] text-[#1b6b45]'}`}>{nv}: {clima.rios!.niveles[nv] ?? 0}</span>
+                    ))}
+                  </div>
+                  <ul class="mt-3 divide-y divide-[#eeeeea] text-sm">
+                    {clima.rios.alertas.map((a) => (
+                      <li class="flex items-center justify-between gap-3 py-2"><span><strong class="text-ink">{a.lugar}</strong> <span class="text-neutral-500">· río {a.rio}</span></span><span class="shrink-0 text-xs font-bold text-neutral-700">{a.nivel}</span></li>
+                    ))}
+                  </ul>
+                  <p class="mt-2 text-xs text-neutral-500"><strong class="font-semibold text-neutral-700">Fuente: DOTS · Observatorio de Diario Federal</strong><br /><span class="text-[11px] text-neutral-400">Elaborado con alturas de ríos oficiales de la región. Actualizado {new Date(clima.rios.actualizado).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })}.</span></p>
+                </article>
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+    )}
+
+    <!-- SEGUIMIENTO DEL RIGI: comprometido vs. ingresado y proyectos que ya existían -->
+    {rigi && (
+      <section id="rigi" class="mt-8 scroll-mt-20 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5" aria-labelledby="rigi-titulo">
+        <p class="text-[11px] font-extrabold tracking-widest text-brand uppercase">Seguimiento económico</p>
+        <h2 id="rigi-titulo" class="mt-1 font-display text-2xl font-bold text-ink">RIGI: lo anunciado, lo que entró y lo que ya estaba</h2>
+        <p class="mt-1 max-w-3xl text-sm text-neutral-600">El Régimen de Incentivo para Grandes Inversiones da beneficios impositivos, aduaneros y cambiarios por 30 años. Acá separamos la plata comprometida de la que ingresó y revisamos, proyecto por proyecto, cuáles ya existían antes del régimen.</p>
+
+        <div class="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div class="rounded-lg bg-[#f6f6f3] p-3"><p class="text-[11px] font-bold tracking-wide text-neutral-500 uppercase">Comprometido</p><p class="mt-1 font-display text-2xl font-bold text-ink">US$ {n(rigi.comprometido.millones)} M</p><p class="text-xs text-neutral-500">{rigi.comprometido.proyectos} proyectos aprobados, hasta 2056</p></div>
+          <div class="rounded-lg bg-[#f6f6f3] p-3"><p class="text-[11px] font-bold tracking-wide text-neutral-500 uppercase">Ingresó (neto)</p><p class="mt-1 font-display text-2xl font-bold text-brand">US$ {n(rigi.ingresado.neto)} M</p><p class="text-xs text-neutral-500">hasta {rigi.ingresado.hasta} (bruto: US$ {n(rigi.ingresado.bruto)} M)</p></div>
+          <div class="rounded-lg bg-[#f6f6f3] p-3"><p class="text-[11px] font-bold tracking-wide text-neutral-500 uppercase">Ya existían</p><p class="mt-1 font-display text-2xl font-bold text-ink">{rigiPreviosCantidad} de {rigi.comprometido.proyectos}</p><p class="text-xs text-neutral-500">ampliaciones o proyectos ya en marcha</p></div>
+          <div class="rounded-lg bg-[#f6f6f3] p-3"><p class="text-[11px] font-bold tracking-wide text-neutral-500 uppercase">Su peso en la plata</p><p class="mt-1 font-display text-2xl font-bold text-ink">{n((rigiPreviosMillones / rigi.comprometido.millones) * 100)} %</p><p class="text-xs text-neutral-500">US$ {n(rigiPreviosMillones)} M de lo comprometido</p></div>
+        </div>
+
+        <div class="mt-5 grid gap-5 lg:grid-cols-2">
+          <article>
+            <h3 class="font-display text-lg font-bold text-ink">Comprometido vs. ingresado a marzo de 2026</h3>
+            <p class="text-xs text-neutral-500">Millones de dólares · proyectos aprobados en ese momento</p>
+            <div class="mt-3 space-y-2 text-sm">
+              <div><div class="flex justify-between"><span>Aprobado</span><strong>US$ {n(rigi.ingresado.aprobadoEseMomento)} M</strong></div><div class="mt-1 h-4 rounded bg-[#4b4b4b]" style="width:100%"></div></div>
+              <div><div class="flex justify-between"><span>Ingresó bruto</span><strong>US$ {n(rigi.ingresado.bruto)} M</strong></div><div class="mt-1 h-4 rounded bg-[#c0392b]" style={`width:${Math.max(1.5, rigi.ingresado.bruto / rigi.ingresado.aprobadoEseMomento * 100)}%`}></div></div>
+              <div><div class="flex justify-between"><span>Ingresó neto</span><strong>US$ {n(rigi.ingresado.neto)} M</strong></div><div class="mt-1 h-4 rounded bg-[#7a1f1f]" style={`width:${Math.max(1.5, rigi.ingresado.neto / rigi.ingresado.aprobadoEseMomento * 100)}%`}></div></div>
+            </div>
+            <h3 class="mt-5 font-display text-lg font-bold text-ink">Cuándo llegaría la plata</h3>
+            <p class="text-xs text-neutral-500">Inversión prevista por año, en miles de millones de dólares</p>
+            <div class="mt-3 flex h-36 items-end gap-1.5">
+              {rigi.cronograma.map((c: any) => (
+                <div class="flex flex-1 flex-col items-center justify-end" title={`${c.anio}: US$ ${n(c.millones)} M`}>
+                  <span class="text-[10px] text-neutral-500">{n(c.millones / 1000, 1)}</span>
+                  <div class="w-full rounded-t bg-[#c0392b]" style={`height:${(c.millones / rigiMaxCrono) * 100}px`}></div>
+                  <span class="mt-1 text-[10px] text-neutral-500">{String(c.anio).slice(2)}</span>
+                </div>
+              ))}
+            </div>
+            <p class="mt-1 text-[11px] text-neutral-400">Valores en miles de millones. El cronograma sigue hasta 2056.</p>
+          </article>
+
+          <article>
+            <h3 class="font-display text-lg font-bold text-ink">¿Cuánto ya existía antes del RIGI?</h3>
+            <p class="text-xs text-neutral-500">27 proyectos aprobados según su situación en julio de 2024</p>
+            <div class="mt-3 flex h-5 overflow-hidden rounded">
+              {rigiGrupos.map((g: any) => <div style={`width:${g.pct}%;background:${g.color}`} title={`${g.nombre}: ${n(g.pct, 1)} %`}></div>)}
+            </div>
+            <ul class="mt-3 space-y-2 text-sm">
+              {rigiGrupos.map((g: any) => (
+                <li class="flex items-center justify-between gap-3"><span class="flex items-center gap-2"><span class="inline-block h-3 w-3 rounded-sm" style={`background:${g.color}`}></span>{g.nombre}</span><span class="shrink-0 text-xs text-neutral-600"><strong class="text-ink">{g.cantidad}</strong> · US$ {n(g.millones)} M · {n(g.pct, 1)} %</span></li>
+              ))}
+            </ul>
+          </article>
+        </div>
+
+        <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <article class="min-w-0">
+            <h3 class="font-display text-lg font-bold text-ink">¿Dónde va la inversión?</h3>
+            <p class="text-xs text-neutral-500">Comprometido por provincia, millones de dólares</p>
+            <div class="mt-3 space-y-2 text-sm">
+              {rigiProvincias.map((p: any) => (
+                <div title={`${p.provincia}: ${p.cantidad} proyecto(s)`}><div class="flex justify-between gap-3"><span class="min-w-0">{p.provincia} <span class="text-xs text-neutral-400">· {p.cantidad}</span></span><strong class="shrink-0">US$ {n(p.millones)} M</strong></div><div class="mt-1 h-3 rounded bg-[#c0392b]" style={`width:${Math.max(1.5, p.millones / rigiMaxProv * 100)}%`}></div></div>
+              ))}
+            </div>
+            <p class="mt-1 text-[11px] text-neutral-400">Los proyectos que abarcan varias provincias se muestran juntos, como figuran en la resolución.</p>
+          </article>
+          <article class="min-w-0">
+            <h3 class="font-display text-lg font-bold text-ink">Los 10 proyectos más grandes</h3>
+            <p class="text-xs text-neutral-500">Millones de dólares · el color indica su situación antes del RIGI</p>
+            <div class="mt-3 space-y-2 text-sm">
+              {rigiTop.map((p: any) => (
+                <div title={p.dato}><div class="flex justify-between gap-3"><span class="min-w-0 truncate">{p.nombre} <span class="text-xs text-neutral-400">· {p.provincia}</span></span><strong class="shrink-0">US$ {n(p.millones)} M</strong></div><div class="mt-1 h-3 rounded" style={`width:${Math.max(1.5, p.millones / rigiTop[0].millones * 100)}%;background:${rigiColor(p.grupo)}`}></div></div>
+              ))}
+            </div>
+          </article>
+        </div>
+
+        <details class="mt-5 rounded-lg border border-neutral-200">
+          <summary class="cursor-pointer px-3 py-2 text-sm font-semibold text-ink">Ver los 27 proyectos uno por uno</summary>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-[#f6f6f3] text-[11px] tracking-wide text-neutral-500 uppercase"><tr><th class="px-3 py-2">Proyecto</th><th class="px-3 py-2">Provincia</th><th class="px-3 py-2 text-right">US$ M</th><th class="px-3 py-2">Situación antes del RIGI</th></tr></thead>
+              <tbody class="divide-y divide-[#eeeeea]">
+                {rigiGrupos.flatMap((g: any) => g.proyectos.map((p: any) => (
+                  <tr class="align-top"><td class="px-3 py-2"><strong class="text-ink">{p.nombre}</strong><br /><span class="text-xs text-neutral-500">{p.empresa}</span></td><td class="px-3 py-2 text-xs text-neutral-600">{p.provincia}</td><td class="px-3 py-2 text-right font-semibold">{n(p.millones)}</td><td class="px-3 py-2 text-xs text-neutral-600"><span class="mr-1 inline-block h-2.5 w-2.5 rounded-sm" style={`background:${g.color}`}></span>{p.dato}</td></tr>
+                )))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <p class="mt-3 text-xs text-neutral-500"><strong class="font-semibold text-neutral-700">Fuente: Laboratorio de datos · Diario Federal</strong><br /><span class="text-[11px] text-neutral-400">Elaborado con resoluciones del Boletín Oficial, el estudio de la Bolsa de Comercio de Rosario (noviembre de 2026) y datos del Banco Central. La clasificación es propia; el corte es la ley que creó el RIGI ({rigi.corte}). Actualizado {diaTexto(rigi.actualizado)}.</span></p>
+      </section>
+    )}
+
+    <section class="mt-8 border-t border-neutral-200 pt-5">
+      <h2 class="font-display text-xl font-bold text-ink">Fuentes y metodología</h2>
+      <div class="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+        <div><strong class="text-ink">Banco Mundial</strong><p class="mt-1 text-neutral-600">Series comparables de crecimiento e inflación. Se muestra el último período disponible informado por la fuente.</p><a class="mt-2 inline-block font-semibold text-brand underline" href="https://data.worldbank.org/" target="_blank" rel="noopener noreferrer">Base de datos ↗</a></div>
+        <div><strong class="text-ink">GDELT Project</strong><p class="mt-1 text-neutral-600">Cobertura global de medios y menciones geográficas. No equivale a una base de incidentes verificados.</p><a class="mt-2 inline-block font-semibold text-brand underline" href="https://www.gdeltproject.org/" target="_blank" rel="noopener noreferrer">Documentación ↗</a></div>
+        <div><strong class="text-ink">Criterio editorial</strong><p class="mt-1 text-neutral-600">Cada visualización debe informar fuente, fecha de actualización, unidad, metodología y límites de interpretación.</p></div>
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+
+<script>
+  // Gráficos (Apache ECharts) y mapa (Leaflet + OpenStreetMap), incluidos en el sitio: no dependen de otros servidores de código.
+  import * as echarts from 'echarts/core';
+  import { LineChart, BarChart } from 'echarts/charts';
+  import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components';
+  import { CanvasRenderer } from 'echarts/renderers';
+  import L from 'leaflet';
+  import 'leaflet/dist/leaflet.css';
+
+  echarts.use([LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
+
+  const paises: Record<string, string> = { ARG: 'Argentina', BRA: 'Brasil', CHL: 'Chile', URY: 'Uruguay' };
+  const colores = ['#c8102e', '#1baf7a', '#eda100', '#7a3fa0']; // paleta validada para daltonismo
+  const indicadores = [
+    { id: 'NY.GDP.MKTP.KD.ZG', el: 'chart-pib', status: 'status-pib', desde: 1990 },
+    // Inflación desde 2000: la hiperinflación de 1989-90 (más de 2000 %) aplastaría el resto de la serie.
+    { id: 'FP.CPI.TOTL.ZG', el: 'chart-inflacion', status: 'status-inflacion', desde: 2000 },
+  ];
+
+  async function cargarIndicador(item: (typeof indicadores)[number]) {
+    const status = document.getElementById(item.status)!;
+    try {
+      const url = `https://api.worldbank.org/v2/country/ARG;BRA;CHL;URY/indicator/${item.id}?format=json&per_page=400&date=${item.desde}:2030`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const payload = await r.json();
+      const filas: any[] = Array.isArray(payload[1]) ? payload[1] : [];
+      const anios = [...new Set(filas.map((f) => f.date))].sort();
+      if (!anios.length) throw new Error('Sin períodos');
+      const series = Object.keys(paises).map((code, i) => ({
+        name: paises[code],
+        type: 'line' as const,
+        showSymbol: false,
+        lineStyle: { width: code === 'ARG' ? 2.5 : 1.5 },
+        color: colores[i],
+        data: anios.map((a) => {
+          const f = filas.find((x) => x.countryiso3code === code && x.date === a);
+          return f && f.value !== null ? Number(f.value) : null;
+        }),
+      }));
+      const chart = echarts.init(document.getElementById(item.el)!);
+      chart.setOption({
+        animation: false,
+        tooltip: { trigger: 'axis', valueFormatter: (v: any) => (v == null ? 'Sin dato' : Number(v).toLocaleString('es-AR', { maximumFractionDigits: 1 }) + ' %') },
+        legend: { bottom: 0, textStyle: { color: '#525252', fontSize: 11 } },
+        grid: { left: 44, right: 14, top: 14, bottom: 52 },
+        xAxis: { type: 'category', data: anios, axisLabel: { color: '#737373' } },
+        yAxis: { type: 'value', axisLabel: { color: '#737373', formatter: '{value} %' }, splitLine: { lineStyle: { color: '#eeeeea' } } },
+        series,
+      });
+      window.addEventListener('resize', () => chart.resize());
+      const ultimo = Math.max(...filas.filter((f) => f.value !== null).map((f) => Number(f.date)));
+      status.textContent = `Fuente: Banco Mundial · último año disponible: ${Number.isFinite(ultimo) ? ultimo : 'sin dato'}.`;
+    } catch (e) {
+      status.textContent = 'La serie del Banco Mundial no respondió en este momento. Probá de nuevo más tarde.';
+      console.error('Indicador', item.id, e);
+    }
+  }
+
+  async function iniciarMapa() {
+    const bloque = document.getElementById('bloque-mapa')!;
+    const status = document.getElementById('status-mapa')!;
+    try {
+      const query = encodeURIComponent('(war OR conflict OR protest OR strike OR ceasefire)');
+      const r = await fetch(`https://api.gdeltproject.org/api/v2/geo/geo?query=${query}&mode=PointData&format=GeoJSON&timespan=24h&maxpoints=150`);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const geo = await r.json();
+      const cantidad = geo.features ? geo.features.length : 0;
+      if (!cantidad) throw new Error('Sin puntos');
+      // Solo se muestra el bloque si hay datos reales: nunca un mapa vacío ni un aviso de error al lector.
+      bloque.classList.remove('hidden');
+      const map = L.map('mapa-cobertura', { scrollWheelZoom: false }).setView([18, 0], 2);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      }).addTo(map);
+      const capa = L.geoJSON(geo, {
+        pointToLayer: (_f, latlng) => L.circleMarker(latlng, { radius: 6, color: '#8f1d2c', weight: 1, fillColor: '#c8102e', fillOpacity: 0.7 }),
+        onEachFeature: (f, layer) => {
+          const p = (f.properties || {}) as any;
+          const t = document.createElement('strong');
+          t.textContent = String(p.name || p.location || 'Lugar mencionado en la cobertura');
+          const n = document.createElement('p');
+          n.textContent = 'Mención geográfica detectada por GDELT. Verificar el contexto en las fuentes.';
+          const w = document.createElement('div');
+          w.append(t, n);
+          layer.bindPopup(w);
+        },
+      }).addTo(map);
+      status.textContent = `${cantidad} ubicaciones · últimas 24 horas`;
+      map.fitBounds(capa.getBounds().pad(0.12), { maxZoom: 5 });
+    } catch (e) {
+      bloque.classList.add('hidden');
+      console.error('Mapa GDELT', e);
+    }
+  }
+
+
+  // ---------- Argentina en datos (archivos propios, sin consultas externas) ----------
+  const ROJO = '#c8102e', AQUA = '#1baf7a', AMARILLO = '#eda100';
+  const ejes = { axisLabel: { color: '#737373' }, axisLine: { lineStyle: { color: '#d4d4d0' } } };
+  // Ejes con fechas diarias: se muestran como mm/aa
+  const ejesFecha = { axisLine: { lineStyle: { color: '#d4d4d0' } }, axisLabel: { color: '#737373', hideOverlap: true, formatter: (f: string) => f.slice(5, 7) + '/' + f.slice(2, 4) } };
+  const grilla = { splitLine: { lineStyle: { color: '#eeeeea' } } };
+  const fmtN = (v: any, d = 0) => (v == null ? 'Sin dato' : Number(v).toLocaleString('es-AR', { minimumFractionDigits: d, maximumFractionDigits: d }));
+  const nodoDatos = document.getElementById('lab-datos');
+  const lab = nodoDatos ? JSON.parse(nodoDatos.textContent || '{}') : null;
+
+  function grafico(id: string, opcion: any) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const c = echarts.init(el);
+    c.setOption({ animation: false, textStyle: { fontFamily: 'Inter, system-ui, sans-serif' }, ...opcion });
+    window.addEventListener('resize', () => c.resize());
+  }
+
+  if (lab) {
+    if (lab.ipc?.length) grafico('g-ipc', {
+      grid: { left: 38, right: 10, top: 12, bottom: 28 },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v: any) => fmtN(v, 1) + ' %' },
+      xAxis: { type: 'category', data: lab.ipc.map((p: any) => p.fecha.slice(5) + '/' + p.fecha.slice(2, 4)), ...ejes },
+      yAxis: { type: 'value', axisLabel: { color: '#737373', formatter: '{value} %' }, ...grilla },
+      series: [{ name: 'Inflación mensual', type: 'bar', data: lab.ipc.map((p: any) => p.mensual), itemStyle: { color: ROJO, borderRadius: [4, 4, 0, 0] }, barCategoryGap: '25%' }],
+    });
+    if (lab.riesgo?.length) grafico('g-riesgo', {
+      grid: { left: 46, right: 12, top: 12, bottom: 28 },
+      tooltip: { trigger: 'axis', valueFormatter: (v: any) => fmtN(v) + ' pb' },
+      xAxis: { type: 'category', data: lab.riesgo.map((p: any) => p.fecha), ...ejesFecha },
+      yAxis: { type: 'value', ...grilla, axisLabel: { color: '#737373', formatter: (v: number) => fmtN(v) } },
+      series: [{ name: 'Riesgo país', type: 'line', showSymbol: false, lineStyle: { width: 2, color: ROJO }, itemStyle: { color: ROJO }, data: lab.riesgo.map((p: any) => p.valor) }],
+    });
+    if (lab.dolar?.length) grafico('g-dolar', {
+      grid: { left: 52, right: 12, top: 12, bottom: 50 },
+      legend: { bottom: 0, textStyle: { color: '#525252', fontSize: 11 } },
+      tooltip: { trigger: 'axis', valueFormatter: (v: any) => '$ ' + fmtN(v, 2) },
+      xAxis: { type: 'category', data: lab.dolar.map((p: any) => p.fecha), ...ejesFecha },
+      yAxis: { type: 'value', ...grilla, axisLabel: { color: '#737373', formatter: (v: number) => fmtN(v) } },
+      series: [
+        { name: 'Oficial', type: 'line', showSymbol: false, connectNulls: true, lineStyle: { width: 2 }, color: ROJO, data: lab.dolar.map((p: any) => p.oficial ?? null) },
+        { name: 'Blue', type: 'line', showSymbol: false, connectNulls: true, lineStyle: { width: 2 }, color: AQUA, data: lab.dolar.map((p: any) => p.blue ?? null) },
+        { name: 'MEP', type: 'line', showSymbol: false, connectNulls: true, lineStyle: { width: 2 }, color: AMARILLO, data: lab.dolar.map((p: any) => p.mep ?? null) },
+      ],
+    });
+    if (lab.reservas?.length) grafico('g-reservas', {
+      grid: { left: 52, right: 12, top: 12, bottom: 28 },
+      tooltip: { trigger: 'axis', valueFormatter: (v: any) => 'US$ ' + fmtN(v) + ' M' },
+      xAxis: { type: 'category', data: lab.reservas.map((p: any) => p.fecha), ...ejesFecha },
+      yAxis: { type: 'value', scale: true, ...grilla, axisLabel: { color: '#737373', formatter: (v: number) => fmtN(v / 1000) + ' mil' } },
+      series: [{ name: 'Reservas', type: 'line', showSymbol: false, lineStyle: { width: 2, color: ROJO }, itemStyle: { color: ROJO }, areaStyle: { color: 'rgba(200,16,46,0.08)' }, data: lab.reservas.map((p: any) => p.valor) }],
+    });
+    if (lab.industria?.ucMetalmecanica?.length) {
+      const ind = lab.industria;
+      const meses = ind.ucMetalmecanica.map((p: any) => p.periodo);
+      const valor = (serie: any[]) => meses.map((m: string) => serie.find((p: any) => p.periodo === m)?.valor ?? null);
+      grafico('g-capacidad', {
+        grid: { left: 38, right: 12, top: 12, bottom: 70 },
+        legend: { bottom: 0, textStyle: { color: '#525252', fontSize: 11 } },
+        tooltip: { trigger: 'axis', valueFormatter: (v: any) => fmtN(v, 1) + ' %' },
+        xAxis: { type: 'category', data: meses.map((m: string) => m.slice(5) + '/' + m.slice(2, 4)), ...ejes },
+        yAxis: { type: 'value', min: 0, max: 100, axisLabel: { color: '#737373', formatter: '{value} %' }, ...grilla },
+        series: [
+          { name: 'Metalmecánica', type: 'line', showSymbol: false, lineStyle: { width: 2.5 }, color: ROJO, data: valor(ind.ucMetalmecanica) },
+          { name: 'Metales básicos', type: 'line', showSymbol: false, lineStyle: { width: 2 }, color: AMARILLO, data: valor(ind.ucMetalicas) },
+          { name: 'Toda la industria', type: 'line', showSymbol: false, lineStyle: { width: 2, type: 'dashed' }, color: '#7a7a7a', data: valor(ind.ucGeneral) },
+        ],
+      });
+      if (ind.acero?.length) grafico('g-acero', {
+        grid: { left: 38, right: 10, top: 12, bottom: 28 },
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v: any) => fmtN(v) + ' mil t' },
+        xAxis: { type: 'category', data: ind.acero.map((p: any) => p.periodo.slice(5) + '/' + p.periodo.slice(2, 4)), ...ejes },
+        yAxis: { type: 'value', axisLabel: { color: '#737373' }, ...grilla },
+        series: [{ name: 'Acero crudo', type: 'bar', data: ind.acero.map((p: any) => Math.round(p.crudo / 1000)), itemStyle: { color: ROJO, borderRadius: [4, 4, 0, 0] }, barCategoryGap: '25%' }],
+      });
+      if (ind.ramas?.length) grafico('g-ramas', {
+        grid: { left: 150, right: 44, top: 6, bottom: 20 },
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v: any) => (v > 0 ? '+' : '') + fmtN(v, 1) + ' %' },
+        xAxis: { type: 'value', axisLabel: { color: '#737373', formatter: '{value} %' }, ...grilla },
+        yAxis: { type: 'category', data: ind.ramas.map((r: any) => r.nombre), axisLabel: { color: '#404040' }, axisLine: { lineStyle: { color: '#d4d4d0' } } },
+        series: [{ type: 'bar', barCategoryGap: '30%', label: { show: true, position: 'right', color: '#404040', fontSize: 11, formatter: (p: any) => (p.value > 0 ? '+' : '') + fmtN(p.value, 1) + ' %' }, data: ind.ramas.map((r: any) => ({ value: r.variacion, itemStyle: { color: r.variacion >= 0 ? AQUA : ROJO, borderRadius: 3 } })) }],
+      });
+      if (ind.empleo?.length) grafico('g-empleo', {
+        grid: { left: 56, right: 12, top: 12, bottom: 28 },
+        tooltip: { trigger: 'axis', valueFormatter: (v: any) => fmtN(v) + ' puestos' },
+        xAxis: { type: 'category', data: ind.empleo.map((p: any) => p.periodo.replace('T', ' T')), ...ejes },
+        yAxis: { type: 'value', scale: true, axisLabel: { color: '#737373', formatter: (v: number) => fmtN(v / 1000) + ' mil' }, ...grilla },
+        series: [{ name: 'Puestos', type: 'line', symbolSize: 6, lineStyle: { width: 2.5, color: ROJO }, itemStyle: { color: ROJO }, areaStyle: { color: 'rgba(200,16,46,0.08)' }, data: ind.empleo.map((p: any) => p.valor) }],
+      });
+      if (ind.importaciones?.length) grafico('g-impo', {
+        grid: { left: 44, right: 10, top: 12, bottom: 28 },
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v: any) => 'US$ ' + fmtN(v) + ' M' },
+        xAxis: { type: 'category', data: ind.importaciones.map((p: any) => p.periodo.slice(5) + '/' + p.periodo.slice(2, 4)), ...ejes },
+        yAxis: { type: 'value', axisLabel: { color: '#737373' }, ...grilla },
+        series: [{ name: 'Importaciones', type: 'bar', data: ind.importaciones.map((p: any) => p.valor), itemStyle: { color: '#7a7a7a', borderRadius: [3, 3, 0, 0] }, barCategoryGap: '25%' }],
+      });
+      if (ind.maquinaria?.length) grafico('g-maquinaria', {
+        grid: { left: 44, right: 10, top: 12, bottom: 50 },
+        legend: { bottom: 0, textStyle: { color: '#525252', fontSize: 11 } },
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v: any) => fmtN(v) + ' unidades' },
+        xAxis: { type: 'category', data: ind.maquinaria.map((p: any) => p.periodo.replace('-', ' ')), ...ejes },
+        yAxis: { type: 'value', axisLabel: { color: '#737373' }, ...grilla },
+        series: [
+          { name: 'Nacional', type: 'bar', stack: 'm', color: ROJO, data: ind.maquinaria.map((p: any) => p.nacional) },
+          { name: 'Importada', type: 'bar', stack: 'm', color: '#b5b5b0', itemStyle: { borderRadius: [3, 3, 0, 0] }, data: ind.maquinaria.map((p: any) => p.importada) },
+        ],
+      });
+    }
+    if (lab.clima?.lluviaEnso?.length) {
+      const ll = [...lab.clima.lluviaEnso].reverse();
+      grafico('g-lluvia-enso', {
+        grid: { left: 130, right: 40, top: 8, bottom: 50 },
+        legend: { bottom: 0, textStyle: { color: '#525252', fontSize: 11 } },
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v: any) => (v == null ? 'Sin dato' : (v > 0 ? '+' : '') + fmtN(v) + ' %') },
+        xAxis: { type: 'value', axisLabel: { color: '#737373', formatter: '{value} %' }, ...grilla },
+        yAxis: { type: 'category', data: ll.map((c: any) => c.ciudad), axisLabel: { color: '#404040', fontSize: 11 }, axisLine: { lineStyle: { color: '#d4d4d0' } } },
+        series: [
+          { name: 'Con El Niño fuerte', type: 'bar', color: ROJO, barGap: '10%', itemStyle: { borderRadius: 2 }, data: ll.map((c: any) => c.ninoFuerte) },
+          { name: 'Con La Niña', type: 'bar', color: '#2b6cb0', itemStyle: { borderRadius: 2 }, data: ll.map((c: any) => c.nina) },
+        ],
+      });
+    }
+    if (lab.clima?.pronostico?.length) {
+      const pr = lab.clima.pronostico;
+      const NOMBRES: Record<string, string> = { DJF: 'DEF', NDJ: 'NDE', OND: 'OND', JFM: 'EFM', FMA: 'FMA', MAM: 'MAM', AMJ: 'AMJ', MJJ: 'MJJ', JJA: 'JJA', JAS: 'JAS', ASO: 'ASO', SON: 'SON' };
+      grafico('g-pronostico', {
+        grid: { left: 38, right: 10, top: 12, bottom: 50 },
+        legend: { bottom: 0, textStyle: { color: '#525252', fontSize: 11 } },
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v: any) => fmtN(v) + ' %' },
+        xAxis: { type: 'category', data: pr.map((p: any) => NOMBRES[p.trimestre] ?? p.trimestre), ...ejes },
+        yAxis: { type: 'value', max: 100, axisLabel: { color: '#737373', formatter: '{value} %' }, ...grilla },
+        series: [
+          { name: 'El Niño', type: 'bar', stack: 'p', color: ROJO, data: pr.map((p: any) => p.nino) },
+          { name: 'Neutral', type: 'bar', stack: 'p', color: '#b5b5b0', data: pr.map((p: any) => p.neutral) },
+          { name: 'La Niña', type: 'bar', stack: 'p', color: '#2b6cb0', data: pr.map((p: any) => p.nina) },
+        ],
+      });
+    }
+    if (lab.clima?.focos?.length) grafico('g-focos', {
+      grid: { left: 44, right: 10, top: 12, bottom: 28 },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v: any) => fmtN(v) + ' focos' },
+      xAxis: { type: 'category', data: lab.clima.focos.map((p: any) => p.periodo.slice(5) + '/' + p.periodo.slice(2, 4)), ...ejes },
+      yAxis: { type: 'value', axisLabel: { color: '#737373', formatter: (v: number) => fmtN(v) }, ...grilla },
+      series: [{ name: 'Focos', type: 'bar', barCategoryGap: '25%', data: lab.clima.focos.map((p: any, i: number, arr: any[]) => ({ value: p.valor, itemStyle: { color: i === arr.length - 1 ? '#f2b8a0' : '#e0622a', borderRadius: [3, 3, 0, 0] } })) }],
+    });
+    if (lab.clima?.nino34?.length) grafico('g-nino', {
+      grid: { left: 40, right: 10, top: 12, bottom: 28 },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v: any) => (v > 0 ? '+' : '') + fmtN(v, 2) + ' °C' },
+      xAxis: { type: 'category', data: lab.clima.nino34.map((p: any) => p.periodo.slice(5) + '/' + p.periodo.slice(2, 4)), ...ejes },
+      yAxis: { type: 'value', axisLabel: { color: '#737373', formatter: '{value} °' }, ...grilla },
+      series: [{ name: 'Niño 3.4', type: 'bar', barCategoryGap: '20%', data: lab.clima.nino34.map((p: any) => ({ value: Math.round(p.valor * 100) / 100, itemStyle: { color: p.valor >= 0.5 ? ROJO : p.valor <= -0.5 ? '#2b6cb0' : '#b5b5b0', borderRadius: 3 } })) }],
+    });
+    if (lab.fmi?.filas?.length) {
+      const filas = lab.fmi.filas;
+      grafico('g-fmi', {
+        grid: { left: 38, right: 10, top: 24, bottom: 50 },
+        legend: { bottom: 0, textStyle: { color: '#525252', fontSize: 11 } },
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v: any) => fmtN(v, 1) + ' %' },
+        xAxis: { type: 'category', data: filas.map((f: any) => f.pais), ...ejes },
+        yAxis: { type: 'value', axisLabel: { color: '#737373', formatter: '{value} %' }, ...grilla },
+        series: [0, 1].map((i) => ({
+          name: String(lab.fmi.anio + i),
+          type: 'bar',
+          barGap: '8%',
+          color: i === 0 ? ROJO : '#7a7a7a',
+          itemStyle: { borderRadius: [4, 4, 0, 0] },
+          label: { show: true, position: 'top', color: '#525252', fontSize: 10, formatter: (p: any) => (p.value == null ? '' : fmtN(p.value, 1)) },
+          data: filas.map((f: any) => f.pib[i]),
+        })),
+      });
+    }
+  }
+
+  indicadores.forEach(cargarIndicador);
+  iniciarMapa();
+</script>

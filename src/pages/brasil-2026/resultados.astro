@@ -1,0 +1,112 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { SITE_TITLE } from '../../consts';
+
+const resultadosUrl = 'https://resultados.tse.jus.br/oficial/app/index.html#/eleicao/6258/uf/br/cargo/1/vis/nominal/resultados';
+---
+
+<BaseLayout
+  title={`Brasil 2026: resultados oficiales en vivo | ${SITE_TITLE}`}
+  description="Cobertura electoral de Diario Federal: consulta de resultados oficiales del TSE de Brasil, claves del escrutinio y contexto regional."
+  ogImage="/images/diario-federal-portada.jpg"
+>
+  <article class="mx-auto max-w-4xl">
+    <p class="um-banner mt-4"><span class="um-luz"></span>Cobertura electoral · Fuente oficial</p>
+    <h1 class="mt-4 font-serif text-4xl leading-[1.08] font-black tracking-tight sm:text-5xl">
+      Brasil: resultados electorales en vivo
+    </h1>
+    <p class="mt-3 text-sm text-neutral-500">
+      Diario Federal · Fuente primaria: Tribunal Superior Electoral (TSE) de Brasil
+    </p>
+
+    <section class="mt-6 border-y-2 border-neutral-900 py-5">
+      <h2 class="font-serif text-2xl font-extrabold">Consultá el escrutinio oficial</h2>
+      <p class="mt-3 leading-relaxed text-neutral-700">
+        Los votos, porcentajes y avance de la totalización deben leerse directamente en la aplicación oficial del TSE. Esta página no reproduce cifras estimadas ni reemplaza la fuente electoral.
+      </p>
+      <div class="mt-4 flex flex-col gap-3 sm:flex-row">
+        <a id="open-tse" href={resultadosUrl} target="_blank" rel="noopener noreferrer"
+          class="inline-flex items-center justify-center bg-neutral-900 px-5 py-3 font-bold text-white hover:bg-neutral-700">
+          Abrir resultados oficiales del TSE ↗
+        </a>
+        <button id="reload-tse" type="button"
+          class="inline-flex items-center justify-center border border-neutral-400 px-5 py-3 font-bold hover:bg-neutral-100">
+          Actualizar vista
+        </button>
+      </div>
+      <p class="mt-3 text-xs text-neutral-500">
+        La vista se recarga cada 60 segundos. Si el TSE impide mostrar su aplicación dentro de esta página, usá el botón para abrir el sitio oficial.
+      </p>
+    </section>
+
+    <section class="mt-6" aria-label="Aplicación oficial de resultados electorales">
+      <div class="flex items-center justify-between gap-3 border border-neutral-300 bg-neutral-50 px-4 py-3">
+        <p class="text-sm font-bold">Aplicación oficial del TSE</p>
+        <p class="text-xs text-neutral-500">Consulta directa</p>
+      </div>
+      <div class="border-x border-b border-neutral-300 bg-white">
+        <iframe
+          id="tse-frame"
+          src={resultadosUrl}
+          title="Resultados electorales oficiales del Tribunal Superior Electoral de Brasil"
+          loading="eager"
+          referrerpolicy="strict-origin-when-cross-origin"
+          class="block w-full"
+          style="height: min(78vh, 900px); min-height: 620px; border: 0;"
+        ></iframe>
+      </div>
+    </section>
+
+    <section class="mt-10 border-t-2 border-neutral-900 pt-6">
+      <p class="text-xs font-bold tracking-[0.16em] text-neutral-500 uppercase">La clave de la jornada</p>
+      <h2 class="mt-2 font-serif text-2xl font-extrabold">Qué muestran los resultados y cómo leerlos</h2>
+      <p class="mt-3 leading-relaxed text-neutral-700">
+        La plataforma de resultados del Tribunal Superior Electoral (TSE) permite consultar la totalización oficial de los votos por elección, cargo y ámbito geográfico. El escrutinio se actualiza a medida que se procesan los datos recibidos; por eso, el porcentaje de avance y la posición de las candidaturas pueden cambiar durante el recuento.
+      </p>
+      <p class="mt-3 leading-relaxed text-neutral-700">
+        Para interpretar correctamente la tendencia, es importante observar tanto los votos y porcentajes de cada candidatura como el avance de la totalización. Un resultado parcial no equivale por sí solo a una proclamación definitiva.
+      </p>
+      <p class="mt-3 leading-relaxed text-neutral-700">
+        Para Argentina, la elección brasileña tiene especial relevancia por el peso de Brasil en el Mercosur, el comercio bilateral, la coordinación regional y las negociaciones económicas y ambientales sudamericanas.
+      </p>
+      <p class="mt-4 text-sm text-neutral-500">
+        Criterio editorial: Diario Federal enlaza a la fuente primaria y no publica cifras que no hayan podido verificarse en el sistema oficial.
+      </p>
+    </section>
+
+    <section class="mt-8 border border-neutral-300 p-5">
+      <h2 class="font-serif text-xl font-extrabold">Fuente y verificación</h2>
+      <p class="mt-2 text-sm leading-relaxed text-neutral-600">
+        Tribunal Superior Electoral de Brasil (TSE), aplicación oficial de resultados.
+      </p>
+      <a href={resultadosUrl} target="_blank" rel="noopener noreferrer" class="mt-3 inline-block break-all text-sm font-bold underline underline-offset-4">
+        {resultadosUrl}
+      </a>
+      <p class="mt-3 text-xs text-neutral-500">Última recarga de esta vista: <time id="last-refresh">al abrir la página</time></p>
+    </section>
+  </article>
+</BaseLayout>
+
+<script>
+  const frame = document.getElementById('tse-frame');
+  const refreshLabel = document.getElementById('last-refresh');
+  const refresh = () => {
+    if (frame) frame.src = frame.src;
+    if (refreshLabel) {
+      refreshLabel.textContent = new Date().toLocaleString('es-AR', {
+        dateStyle: 'short',
+        timeStyle: 'medium',
+        timeZone: 'America/Argentina/Buenos_Aires'
+      });
+    }
+  };
+  document.getElementById('reload-tse')?.addEventListener('click', refresh);
+  if (refreshLabel) {
+    refreshLabel.textContent = new Date().toLocaleString('es-AR', {
+      dateStyle: 'short',
+      timeStyle: 'medium',
+      timeZone: 'America/Argentina/Buenos_Aires'
+    });
+  }
+  window.setInterval(refresh, 60000);
+</script>

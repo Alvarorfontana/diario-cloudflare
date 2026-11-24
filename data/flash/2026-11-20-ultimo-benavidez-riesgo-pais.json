@@ -1,0 +1,155 @@
+{
+  "id": "2026-11-20-ultimo-benavidez-riesgo-pais",
+  "tipo": "ultimo",
+  "titulo": "Saqueo en Benavídez, riesgo país en mil puntos, UNICEF y la jubilada presa por comida",
+  "fecha": "2026-11-20",
+  "voz": "es-AR-TomasNeural",
+  "velocidad": 14,
+  "musica": "/flash/musica/paulyudin.mp3",
+  "volumenMusica": -18,
+  "estilo": "noticiero",
+  "subtitulos": true,
+  "intro": "Diario Federal. Las noticias de este viernes.",
+  "cierre": "Esto fue Diario Federal. Más en diariofederal punto com punto ar.",
+  "rotulo": "20 DE NOVIEMBRE DE 2026",
+  "bloques": [
+    {
+      "kicker": "Tigre",
+      "titulo": "Saquean un supermercado en Benavídez",
+      "dato": "Un detenido y once aprehendidos",
+      "bajada": "Vecinos saquearon el local de dueños chinos tras una denuncia por abuso contra un nene de 11 años.",
+      "texto": "Benavídez, partido de Tigre. Vecinos saquearon un supermercado de dueños chinos. El dueño está detenido, denunciado por abusar de un nene de once años. Hubo destrozos, pintadas y gomas quemadas. El clima social está al rojo vivo. Hace diez días también hubo saqueos en Salta.",
+      "epigrafe": "Supermercado saqueado en Benavídez, partido de Tigre, este viernes",
+      "fuente": "Video: C5N",
+      "media": {
+        "tipo": "video",
+        "archivo": "/uploads/2026-11-20-benavidez-saqueo.mp4",
+        "inicio": 0
+      }
+    },
+    {
+      "kicker": "Economía",
+      "titulo": "El riesgo país rompió los mil puntos",
+      "dato": "1.038 puntos",
+      "bajada": "Es el nivel más alto en trece meses. En julio estaba en 402.",
+      "texto": "El riesgo país rompió los mil puntos. Llegó a mil treinta y ocho, lo más alto en trece meses. En julio estaba en cuatrocientos dos. Se multiplicó por dos y medio en cuatro meses.",
+      "epigrafe": "Pantalla de cotizaciones",
+      "fuente": "Imagen ilustrativa · Dato: JP Morgan",
+      "media": {
+        "tipo": "foto",
+        "archivo": "/uploads/1790622140842-riesgopais.jpg",
+        "foco": [
+          0.5,
+          0.5
+        ]
+      }
+    },
+    {
+      "kicker": "Provincia de Buenos Aires",
+      "titulo": "Cae la actividad y cae la recaudación",
+      "dato": "Construcción −15%",
+      "bajada": "ARBA informó caídas en industria, construcción y comercio. La recaudación propia bajó 3,5% real.",
+      "texto": "En la provincia de Buenos Aires, la industria cae más del diez por ciento. La construcción, quince. El comercio, siete. Lo dijo el jefe de ARBA, Cristian Girard, ante la Legislatura. Hasta septiembre, la recaudación propia ya perdió tres y medio por ciento real.",
+      "epigrafe": "Cristian Girard, titular de ARBA, en la Legislatura bonaerense",
+      "fuente": "Foto: Ámbito",
+      "media": {
+        "tipo": "foto",
+        "archivo": "https://media.ambito.com/p/234656b5ae85597dd1b1d834ba20d268/adjuntos/239/imagenes/043/779/0043779455/1200x675/1007x545:1027x565/cristian-girard-la-legislatura.jpeg",
+        "foco": [
+          0.5,
+          0.4
+        ]
+      }
+    },
+    {
+      "kicker": "UNICEF",
+      "titulo": "Cuatro de cada diez familias con chicos no llegan",
+      "dato": "41% de los hogares",
+      "bajada": "Son 2,7 millones de familias. En el 12% de los hogares ya se achicaron las porciones de los chicos.",
+      "texto": "Y el dato que duele. Según UNICEF, cuatro de cada diez familias con chicos no llegan a fin de mes. Son dos millones setecientos mil hogares. En uno de cada ocho, a los chicos ya les achican el plato.",
+      "epigrafe": "Informe de UNICEF sobre hogares con chicos",
+      "fuente": "Foto: El Tribuno de Jujuy",
+      "media": {
+        "tipo": "foto",
+        "archivo": "https://uscdn.eltribunodejujuy.com/112026/1795184471770.jpg?&cw=1200&ch=630",
+        "foco": [
+          0.5,
+          0.4
+        ]
+      }
+    },
+    {
+      "kicker": "Jubilados",
+      "titulo": "Presa 35 días por intentar llevarse carne",
+      "dato": "Fianza de $150.000",
+      "bajada": "Estela Chávez cobra la mínima. La detuvieron en un Carrefour de Núñez con carne, salchichas y fiambre.",
+      "texto": "Y una historia que lo resume todo. Estela Chávez cobra la jubilación mínima. Pasó treinta y cinco días presa por intentar llevarse carne, salchichas y fiambre de un Carrefour de Núñez. Su familia juntó ciento cincuenta mil pesos de fianza. La jubilación apenas me alcanza para los remedios y los servicios, contó. Es la primera vez en mi vida que no puedo comer un pedazo de carne.",
+      "epigrafe": "Estela Chávez, jubilada",
+      "fuente": "Foto: C5N",
+      "media": {
+        "tipo": "foto",
+        "archivo": "https://media.c5n.com/p/1fea3de4276245fea98a28ebc9a3cdee/adjuntos/326/imagenes/000/408/0000408030/1200x675/smart/estela-chavez-jubilada.jpg",
+        "foco": [
+          0.5,
+          0.35
+        ]
+      }
+    },
+    {
+      "kicker": "Núñez",
+      "titulo": "Ollas frente al Carrefour donde la detuvieron",
+      "dato": "«Ninguna presa por comer»",
+      "bajada": "Organizaciones sociales protestaron este viernes frente al supermercado de avenida Cabildo.",
+      "texto": "Hoy, frente a ese mismo Carrefour, vecinos y organizaciones sociales pusieron ollas vacías en la vereda. Ninguna presa por comer, decían los carteles. Y otro: con hambre no hay libertad.",
+      "epigrafe": "Protesta frente al Carrefour de Núñez, este viernes",
+      "fuente": "Video enviado a Diario Federal",
+      "media": {
+        "tipo": "video",
+        "archivo": "/uploads/2026-11-20-carrefour-nunez-olla.mp4",
+        "inicio": 0
+      }
+    }
+  ],
+  "estado": "listo",
+  "publicado": false,
+  "subtitulosVtt": "/flash/2026-11-20-ultimo-benavidez-riesgo-pais.vtt",
+  "capitulos": [
+    {
+      "t": 6.1,
+      "titulo": "Saquean un supermercado en Benavídez"
+    },
+    {
+      "t": 25.6,
+      "titulo": "El riesgo país rompió los mil puntos"
+    },
+    {
+      "t": 38.3,
+      "titulo": "Cae la actividad y cae la recaudación"
+    },
+    {
+      "t": 55.7,
+      "titulo": "Cuatro de cada diez familias con chicos no llegan"
+    },
+    {
+      "t": 68.9,
+      "titulo": "Presa 35 días por intentar llevarse carne"
+    },
+    {
+      "t": 91.7,
+      "titulo": "Ollas frente al Carrefour donde la detuvieron"
+    }
+  ],
+  "duracion": 111.3,
+  "duraciones": [
+    18.4,
+    11.5,
+    16.2,
+    12.0,
+    21.5,
+    11.0
+  ],
+  "video": "/flash/2026-11-20-ultimo-benavidez-riesgo-pais.mp4",
+  "miniatura": "/flash/2026-11-20-ultimo-benavidez-riesgo-pais.jpg",
+  "version": "20261120174802",
+  "generado": "2026-11-20T17:48:02+00:00"
+}

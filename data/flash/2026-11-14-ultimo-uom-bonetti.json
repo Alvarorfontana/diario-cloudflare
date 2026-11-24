@@ -1,0 +1,81 @@
+{
+  "id": "2026-11-14-ultimo-uom-bonetti",
+  "tipo": "ultimo",
+  "titulo": "UOM Capital: Roberto Bonetti le responde a Mariano Martín y defiende la paritaria",
+  "fecha": "2026-11-14",
+  "voz": "es-AR-TomasNeural",
+  "velocidad": 8,
+  "musica": "/flash/musica/starostin.mp3",
+  "volumenMusica": -17,
+  "estilo": "noticiero",
+  "subtitulos": true,
+  "cierre": "Diario Federal. Más en diariofederal punto com punto ar.",
+  "estado": "listo",
+  "publicado": true,
+  "bloques": [
+    {
+      "kicker": "Roberto Bonetti dijo",
+      "titulo": "Roberto Bonetti, secretario general de la UOM Capital",
+      "texto": "Roberto Bonetti, secretario general de la UOM Capital, le respondió a Mariano Martín, de El Destape. Lo acusa de publicar sin consultar a los dirigentes que nombra.",
+      "epigrafe": "Roberto Bonetti, secretario general de la UOM Capital",
+      "fuente": "Foto cedida",
+      "media": {
+        "tipo": "foto",
+        "archivo": "/uploads/roberto-bonetti-uom-capital.jpg"
+      }
+    },
+    {
+      "kicker": "Roberto Bonetti dijo",
+      "titulo": "23,5% hasta marzo de 2027",
+      "texto": "El secretario general de la UOM Capital defendió la paritaria del 23,5 por ciento y recordó que Furlán dejó los salarios metalúrgicos un 18,5 por ciento atrás de la inflación.",
+      "epigrafe": "Roberto Bonetti, secretario general de la UOM Capital",
+      "fuente": "Archivo Diario Federal",
+      "media": {
+        "tipo": "foto",
+        "archivo": "/uploads/2026-10-26-roberto-bonetti-uom.jpg"
+      }
+    },
+    {
+      "kicker": "Roberto Bonetti dijo",
+      "titulo": "«La UOM está por encima de cualquier dirigente»",
+      "texto": "Y desde la UOM Capital pidió unidad: el gremio está por encima de cualquier dirigente circunstancial.",
+      "epigrafe": "Roberto Bonetti, secretario general de la UOM Capital",
+      "fuente": "Foto cedida",
+      "media": {
+        "tipo": "foto",
+        "archivo": "/uploads/roberto-bonetti-uom-capital.jpg",
+        "foco": [
+          0.5,
+          0.3
+        ]
+      }
+    }
+  ],
+  "rotulo": "14 DE NOVIEMBRE DE 2026",
+  "subtitulosVtt": "/flash/2026-11-14-ultimo-uom-bonetti.vtt",
+  "capitulos": [
+    {
+      "t": 5.6,
+      "titulo": "Roberto Bonetti, secretario general de la UOM Capital"
+    },
+    {
+      "t": 16.5,
+      "titulo": "23,5% hasta marzo de 2027"
+    },
+    {
+      "t": 27.3,
+      "titulo": "«La UOM está por encima de cualquier dirigente»"
+    }
+  ],
+  "duracion": 41.1,
+  "duraciones": [
+    9.7,
+    9.6,
+    5.3
+  ],
+  "video": "/flash/2026-11-14-ultimo-uom-bonetti.mp4",
+  "miniatura": "/flash/2026-11-14-ultimo-uom-bonetti.jpg",
+  "version": "20261114214955",
+  "generado": "2026-11-14T21:49:55+00:00",
+  "publicadoEl": "2026-11-14T22:01:14+00:00"
+}

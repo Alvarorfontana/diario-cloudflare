@@ -1,0 +1,827 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+export const prerender = false;
+---
+
+<BaseLayout
+  title="Elecciones Estados Unidos 2026 | Mapa en vivo — Diario Federal"
+  description="Cobertura electoral de Estados Unidos 2026: mapa propio de Diario Federal con datos de civicAPI y tablero original de resultados de Fox News, dos fuentes independientes."
+  section="Internacional"
+  image="/images/elecciones-estados-unidos-2026.jpg"
+  ogImage="/images/elecciones-estados-unidos-2026.jpg"
+>
+  <section class="election-page">
+    <header class="election-header">
+      <div>
+        <p class="eyebrow">AGENCIA FEDERAL · COBERTURA ESPECIAL</p>
+        <h1>Estados Unidos <span>2026</span></h1>
+        <p class="dek">El mapa electoral, estado por estado. Resultados preliminares y evolución del escrutinio.</p>
+      </div>
+      <div class="live-state" aria-live="polite">
+        <span class="live-dot"></span>
+        <span id="live-label">CONECTANDO CON LAS FUENTES</span>
+      </div>
+    </header>
+
+    <section class="score-strip" aria-label="Resumen de resultados">
+      <article class="score-card">
+        <span class="score-label">ESCAÑOS DE LA CÁMARA EN JUEGO</span>
+        <strong id="house-r">435</strong>
+        <small>Renovación completa de la Cámara de Representantes</small>
+      </article>
+      <article class="score-card">
+        <span class="score-label">ESCAÑOS DEL SENADO EN JUEGO</span>
+        <strong id="house-d">35</strong>
+        <small>33 regulares y 2 elecciones especiales</small>
+      </article>
+      <article class="score-card score-meta">
+        <span class="score-label">ELECCIONES A GOBERNADOR</span>
+        <strong id="states-live">36</strong>
+        <small id="updated-at">En 36 estados, según el calendario electoral</small>
+      </article>
+    </section>
+
+    <section class="map-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">MAPA NACIONAL</p>
+          <h2>Seguimiento del escrutinio</h2>
+        </div>
+        <span class="map-period">RESULTADOS DE LA JORNADA · 3 NOVIEMBRE 2026</span>
+      </div>
+
+      <div class="map-legend" aria-label="Referencias del mapa">
+        <span><i class="swatch republican"></i>Republicano lidera · civicAPI</span>
+        <span><i class="swatch democrat"></i>Demócrata lidera · civicAPI</span>
+        <span><i class="swatch pending"></i>Sin datos suficientes</span>
+      </div>
+
+      <div class="map-layout">
+        <div class="map-canvas" id="map-canvas">
+          <div class="map-loading" id="map-loading">Cargando mapa de los 50 estados…</div>
+          <svg id="us-map" viewBox="0 0 960 610" role="img" aria-label="Mapa interactivo de los Estados Unidos. Seleccione un estado para ver sus resultados."></svg>
+        </div>
+        <aside class="state-detail" id="state-detail" aria-live="polite">
+          <p class="eyebrow">DETALLE POR ESTADO</p>
+          <h3 id="detail-title">Seleccioná un estado</h3>
+          <p id="detail-status" class="detail-status">El mapa mostrará los resultados cuando los organismos electorales publiquen sus recuentos.</p>
+          <div id="detail-races" class="detail-races"></div>
+        </aside>
+      </div>
+      <p class="map-note"><strong>Estado del escrutinio:</strong> el mapa se colorea con los liderazgos parciales de civicAPI cuando hay recuentos publicados para la contienda estatal prioritaria. Gris significa que aún no hay datos suficientes. Un liderazgo no equivale a una proyección ni a un ganador. Los resultados son preliminares hasta la certificación oficial.</p>
+      <div class="map-live-links">
+        <a href="https://www.latimes.com/politics/story/2026-11-03/2026-midterm-election-live-results-balance-of-power-democrats-republicans-control-congress-senate" target="_blank" rel="noopener noreferrer">Resultados nacionales y balance del Congreso · Los Angeles Times / AP ↗</a>
+        <a href="https://www.poliwave.com/us/live/midterms-2026?lang=es" target="_blank" rel="noopener noreferrer">Abrir mapa electoral en español · Poliwave / civicAPI ↗</a>
+        <a href="https://civicapi.org/results" target="_blank" rel="noopener noreferrer">Consultar base de resultados y fuentes · civicAPI ↗</a>
+        <a href="https://www.washingtonpost.com/politics/interactive/2026/11/03/see-where-votes-are-being-counted-senate-house-midterm-races/" target="_blank" rel="noopener noreferrer">Ver mapa de escrutinio por estado y distrito · The Washington Post ↗</a>
+      </div>
+    </section>
+
+    <section class="live-results-embed" aria-label="Fuentes de resultados electorales en vivo">
+      <div class="embed-heading">
+        <div><p class="eyebrow">FUENTE DE DATOS · ACTUALIZACIÓN AUTOMÁTICA</p><h2>Resultados conectados</h2></div>
+        <span class="source-status" id="civicapi-status">CONECTANDO</span>
+      </div>
+      <p class="embed-intro"><strong>Dos fuentes independientes:</strong> el mapa y el explorador de Diario Federal consultan civicAPI mediante un servicio propio; el panel siguiente muestra el tablero original de Fox News. No mezclamos sus recuentos ni presentamos a Fox como proveedor de los datos del mapa. Los liderazgos de civicAPI son parciales, no proyecciones ni ganadores. Atribución: civicAPI.</p>
+      <div class="fox-results-panel">
+        <div class="fox-results-heading">
+          <div><p class="eyebrow">TABLERO ORIGINAL · FOX NEWS</p><h3>Resultados y gráficos de Fox</h3><p>Vista del tablero publicado por Fox News. Si el medio bloquea la visualización dentro de otros sitios, abrilo directamente desde el enlace.</p></div>
+          <a href="https://www.foxnews.com/elections/2026/midterm-results" target="_blank" rel="noopener noreferrer">Abrir Fox News ↗</a>
+        </div>
+        <div class="fox-frame-wrap">
+          <iframe src="https://www.foxnews.com/elections/2026/midterm-results" title="Tablero original de resultados electorales de Fox News" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+          <div class="fox-frame-fallback">Si el tablero no aparece, Fox News no permite incrustarlo en Diario Federal. <a href="https://www.foxnews.com/elections/2026/midterm-results" target="_blank" rel="noopener noreferrer">Abrir los resultados y gráficos originales de Fox ↗</a></div>
+        </div>
+      </div>
+      <div class="guardian-toolbar">
+        <span><i class="guardian-live-dot"></i> DATOS ELECTORALES · civicAPI</span>
+        <span id="civicapi-refresh-time">Consultando resultados del 3 de noviembre…</span>
+        <a href="https://civicapi.org/results" target="_blank" rel="noopener noreferrer">Abrir fuente de datos ↗</a>
+      </div>
+      <div class="live-source-actions">
+        <a class="live-source-card" href="https://www.latimes.com/politics/story/2026-11-03/2026-midterm-election-live-results-balance-of-power-democrats-republicans-control-congress-senate" target="_blank" rel="noopener noreferrer">
+          <span>RESULTADOS NACIONALES · DATOS AP</span><strong>Los Angeles Times · balance del Congreso</strong><em>Ver resultados nacionales ↗</em>
+        </a>
+        <a class="live-source-card" href="https://www.latimes.com/politics/story/2026-11-03/2026-midterm-election-live-results-california" target="_blank" rel="noopener noreferrer">
+          <span>CALIFORNIA · DATOS AP</span><strong>Los Angeles Times · resultados estatales</strong><em>Ver California ↗</em>
+        </a>
+        <a class="live-source-card" href="https://www.foxnews.com/elections/2026/midterm-results/state/arizona" target="_blank" rel="noopener noreferrer">
+          <span>ARIZONA · FOX NEWS</span><strong>Fox News · resultados por distrito</strong><em>Ver Arizona ↗</em>
+        </a>
+        <a class="live-source-card" href="https://www.washingtonpost.com/elections/results/2026/11/03/arizona-live-updates/" target="_blank" rel="noopener noreferrer">
+          <span>ARIZONA · COBERTURA Y MAPAS</span><strong>The Washington Post · resultados</strong><em>Ver cobertura ↗</em>
+        </a>
+      </div>
+    </section>
+
+    <section class="race-explorer" aria-label="Explorador de contiendas electorales">
+      <div class="explorer-head">
+        <div><p class="eyebrow">RESULTADOS POR CONTIENDA</p><h2>Senado · Cámara · Gobernadores</h2>
+        <p>Explorador propio inspirado en la cobertura de Poliwave. Los datos y candidatos se muestran únicamente cuando civicAPI los entrega.</p></div>
+        <span class="source-status" id="race-count">ESPERANDO DATOS</span>
+      </div>
+      <div class="explorer-controls">
+        <div class="race-tabs" role="group" aria-label="Filtrar por tipo de elección">
+          <button type="button" class="race-tab" data-race-tab="all">Todas</button>
+          <button type="button" class="race-tab" data-race-tab="senate">Senado</button>
+          <button type="button" class="race-tab" data-race-tab="house">Cámara</button>
+          <button type="button" class="race-tab active" data-race-tab="governor">Gobernadores</button>
+        </div>
+        <input id="race-search" type="search" placeholder="Buscar estado, distrito o candidato…" aria-label="Buscar contienda o candidato">
+      </div>
+      <div class="race-table-wrap">
+        <table class="race-table">
+          <thead><tr><th>Contienda</th><th>Candidatos y votos</th><th>Estado</th></tr></thead>
+          <tbody id="race-table-body"><tr><td colspan="3" class="race-empty">La conexión está preparada. Las contiendas aparecerán cuando civicAPI publique sus registros.</td></tr></tbody>
+        </table>
+      </div>
+      <button type="button" class="race-more" id="race-more" hidden>Mostrar más contiendas</button>
+      <p class="explorer-note">“Lidera” indica ventaja en el recuento publicado, no una proyección ni una declaración de ganador. La cantidad de unidades informadas no equivale al porcentaje de votos escrutados. Fuente: civicAPI · <a href="https://www.poliwave.com/us/live/midterms-2026?lang=es" target="_blank" rel="noopener noreferrer">referencia de cobertura Poliwave</a>.</p>
+    </section>
+
+    <section class="results-bottom">
+      <div>
+        <p class="eyebrow">COBERTURA</p>
+        <h2>50 estados en el mapa</h2>
+        <p>El mapa cubre los 50 estados. La cobertura de hoy, martes 3 de noviembre de 2026, sigue las elecciones legislativas, senatoriales y de gobernadores. El mapa propio consulta civicAPI automáticamente cada 30 segundos. La fuente agrega resultados oficiales estatales; la página nacional de Los Angeles Times aporta una referencia periodística basada en AP.</p>
+      </div>
+      <div class="source-card">
+        <strong>Fuentes para resultados 2026</strong>
+        <p>civicAPI agrega resultados de organismos electorales estatales y actualiza durante el escrutinio. Los Angeles Times y Fox News publican resultados basados en Associated Press. Cada fuente se identifica por separado.</p>
+        <a href="https://civicapi.org/results" target="_blank" rel="noopener noreferrer">Resultados por fecha y jurisdicción · civicAPI ↗</a>
+      </div>
+    </section>
+
+    <section class="news-desk" aria-labelledby="news-desk-title">
+      <div class="news-desk-heading">
+        <div>
+          <p class="eyebrow">MESA DE MEDIOS · ACTUALIZACIÓN EDITORIAL</p>
+          <h2 id="news-desk-title">Seguí la cobertura en otros medios</h2>
+          <p>Enlaces directos a coberturas periodísticas en desarrollo. Los resultados y las proyecciones pertenecen a cada medio; Diario Federal no replica sus bases de datos.</p>
+        </div>
+      </div>
+      <div class="news-grid">
+        <a class="news-source fox-source" href="https://www.foxnews.com/elections/2026/midterm-results" target="_blank" rel="noopener noreferrer">
+          <span class="news-kicker">RESULTADOS Y GRÁFICOS · FOX NEWS</span>
+          <strong>Fox News · tablero electoral nacional</strong>
+          <span>Acceso al panel original de Fox: balance de Senado y Cámara, contiendas estatales, candidatos, votos, porcentaje informado y llamadas de carrera cuando estén disponibles.</span>
+          <em>Abrir resultados y gráficos de Fox ↗</em>
+        </a>
+        <a class="news-source featured" href="https://www.latimes.com/politics/story/2026-11-03/2026-midterm-election-live-results-balance-of-power-democrats-republicans-control-congress-senate" target="_blank" rel="noopener noreferrer">
+          <span class="news-kicker">RESULTADOS NACIONALES · DATOS AP</span>
+          <strong>Los Angeles Times · resultados nacionales</strong>
+          <span>Balance de poder de Cámara, Senado y gobernaciones con resultados de Associated Press.</span>
+          <em>Ver resultados ↗</em>
+        </a>
+        <a class="news-source" href="https://www.poliwave.com/us/live/midterms-2026?lang=es" target="_blank" rel="noopener noreferrer">
+          <span class="news-kicker">MAPA EN ESPAÑOL · DATOS EN VIVO</span>
+          <strong>Poliwave · resultados y mapa interactivo</strong>
+          <span>Contiendas de Cámara, Senado, gobernadores y otros cargos. Distingue resultados publicados de proyecciones.</span>
+          <em>Abrir mapa en español ↗</em>
+        </a>
+        <a class="news-source" href="https://civicapi.org/results" target="_blank" rel="noopener noreferrer">
+          <span class="news-kicker">API ABIERTA · FUENTES OFICIALES</span>
+          <strong>civicAPI · datos electorales reutilizables</strong>
+          <span>Agrega información de secretarías de Estado y autoridades electorales; actualiza cada 5–10 segundos durante el escrutinio.</span>
+          <em>Consultar resultados y metodología ↗</em>
+        </a>
+        <a class="news-source" href="https://www.washingtonpost.com/politics/interactive/2026/11/03/see-where-votes-are-being-counted-senate-house-midterm-races/" target="_blank" rel="noopener noreferrer">
+          <span class="news-kicker">MAPA DE ESCRUTINIO · EN VIVO</span>
+          <strong>The Washington Post · votos contabilizados</strong>
+          <span>Seguimiento del porcentaje de votos contabilizados por estado y distrito en las contiendas de Senado y Cámara.</span>
+          <em>Ver mapa de escrutinio ↗</em>
+        </a>
+        <a class="news-source" href="https://apps.texastribune.org/features/2026/texas-general-election-live-results-2026/" target="_blank" rel="noopener noreferrer">
+          <span class="news-kicker">COBERTURA ESTATAL · AP</span>
+          <strong>Texas Tribune · resultados de Texas</strong>
+          <span>Resultados en vivo por distrito y cargo, con datos de Associated Press y cobertura local.</span>
+          <em>Consultar Texas ↗</em>
+        </a>
+        <a class="news-source" href="https://www.cbsnews.com/live-updates/election-day-2026-midterms/" target="_blank" rel="noopener noreferrer">
+          <span class="news-kicker">COBERTURA EN VIVO</span>
+          <strong>CBS News</strong>
+          <span>Actualizaciones, incidencias electorales y seguimiento de las contiendas clave.</span>
+          <em>Leer en CBS ↗</em>
+        </a>
+        <a class="news-source" href="https://abcnews.com/Politics/live-updates/midterm-elections-live-updates/" target="_blank" rel="noopener noreferrer">
+          <span class="news-kicker">COBERTURA EN VIVO</span>
+          <strong>ABC News</strong>
+          <span>Crónicas desde los estados, declaraciones de candidatos y novedades de la jornada.</span>
+          <em>Leer en ABC ↗</em>
+        </a>
+        <a class="news-source" href="https://apnews.com/hub/elections" target="_blank" rel="noopener noreferrer">
+          <span class="news-kicker">AGENCIA · RESULTADOS Y ANÁLISIS</span>
+          <strong>Associated Press</strong>
+          <span>Conteo, decisiones de carrera y cobertura nacional de la agencia.</span>
+          <em>Seguir en AP ↗</em>
+        </a>
+        <a class="news-source" href="https://www.reuters.com/live/us-midterm-elections-2026-live-american-voters-cast-verdict-trump-congress-2026-11-03/" target="_blank" rel="noopener noreferrer">
+          <span class="news-kicker">COBERTURA EN VIVO</span>
+          <strong>Reuters · jornada electoral</strong>
+          <span>Actualizaciones políticas y seguimiento de la votación en todo el país.</span>
+          <em>Leer en Reuters ↗</em>
+        </a>
+        <a class="news-source" href="https://www.nbcuniversal.com/article/nbcuniversal-brings-together-nbc-news-telemundo-and-peacock-comprehensive-2026-midterm-election" target="_blank" rel="noopener noreferrer">
+          <span class="news-kicker">COBERTURA · DECISION DESK</span>
+          <strong>NBC News</strong>
+          <span>Seguimiento de resultados, mapas y análisis electoral de NBC.</span>
+          <em>Consultar NBC ↗</em>
+        </a>
+        <a class="news-source" href="https://www.telemundo.com/noticias/noticias-telemundo/elecciones-estados-unidos-2026/live-blog/elecciones-eeuu-medio-termino-2026-resultados-en-vivo-ultimas-noticias-rcna607062" target="_blank" rel="noopener noreferrer">
+          <span class="news-kicker">COBERTURA EN ESPAÑOL</span>
+          <strong>Noticias Telemundo</strong>
+          <span>Información en español y foco en el voto latino y las contiendas competitivas.</span>
+          <em>Consultar Telemundo ↗</em>
+        </a>
+      </div>
+      <p class="news-disclaimer">Los enlaces abren los sitios originales. Los datos de civicAPI se muestran con atribución. El tablero y los gráficos de Fox News se consultan en Fox: su página indica que el material no puede republicarse ni redistribuirse, por lo que Diario Federal no copia sus cifras ni reproduce sus visualizaciones sin autorización o licencia. Los resultados son preliminares hasta su certificación por las autoridades electorales.</p>
+    </section>
+    <footer class="data-footer">
+      <span id="source-time">Jornada electoral · 3 de noviembre de 2026 · civicAPI (recuentos) / Associated Press (cobertura de medios).</span>
+      <span>AGENCIA FEDERAL · DIARIO FEDERAL</span>
+    </footer>
+  </section>
+</BaseLayout>
+
+<style>
+  .election-page { color: #17202c; padding-bottom: 3rem; }
+  .election-header { display:flex; align-items:flex-end; justify-content:space-between; gap:1.5rem; border-bottom:1px solid #d9dee5; padding:0 0 1.35rem; }
+  .eyebrow { margin:0 0 .45rem; color:#687586; font-size:.68rem; font-weight:800; letter-spacing:.13em; }
+  h1 { margin:0; font-family:Newsreader, Georgia, serif; font-size:clamp(2.4rem,6vw,4.6rem); line-height:.98; letter-spacing:-.035em; }
+  h1 span { color:#8b1e27; }
+  .dek { max-width:44rem; margin:.8rem 0 0; color:#536071; font-size:1rem; }
+  .live-state { display:flex; align-items:center; gap:.55rem; flex-shrink:0; padding:.6rem .8rem; border:1px solid #d9dee5; border-radius:999px; color:#344152; font-size:.67rem; font-weight:800; letter-spacing:.08em; }
+  .live-dot { width:.55rem; height:.55rem; border-radius:50%; background:#9babbc; }
+  .live-state.is-live .live-dot { background:#c52832; box-shadow:0 0 0 4px #c528321c; animation:pulse 1.8s infinite; }
+  .score-strip { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.75rem; margin:1.15rem 0; }
+  .score-card { min-height:112px; padding:1rem 1.1rem; border:1px solid #dce1e8; border-radius:12px; background:#fff; }
+  .score-label { display:block; color:#657184; font-size:.62rem; font-weight:800; letter-spacing:.08em; line-height:1.35; }
+  .score-card strong { display:block; margin:.35rem 0 .1rem; font-family:Newsreader,Georgia,serif; font-size:2.5rem; line-height:1; }
+  .score-card small { color:#6c7786; font-size:.7rem; }
+  .map-panel { border:1px solid #dce1e8; border-radius:16px; background:#fff; overflow:hidden; }
+  .panel-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1.1rem 1.25rem .8rem; }
+  .panel-heading h2,.results-bottom h2 { margin:0; font-family:Newsreader,Georgia,serif; font-size:1.65rem; }
+  .map-period { padding:.55rem .75rem; border:1px solid #dce1e8; border-radius:999px; color:#687586; font-size:.62rem; font-weight:800; letter-spacing:.08em; }
+  .view-button { border:0; border-radius:7px; background:transparent; padding:.55rem .8rem; color:#536071; font:700 .76rem Inter, sans-serif; cursor:pointer; }
+  .view-button.active { background:#17202c; color:#fff; }
+  .map-legend { display:flex; flex-wrap:wrap; gap:.65rem 1.2rem; padding:.65rem 1.25rem; border-top:1px solid #edf0f3; border-bottom:1px solid #edf0f3; color:#536071; font-size:.7rem; }
+  .map-legend span { display:flex; align-items:center; gap:.4rem; }
+  .swatch { width:.7rem; height:.7rem; border-radius:3px; display:inline-block; }
+  .republican { background:#c64b50; } .democrat { background:#3978c5; } .mixed { background:#9272a8; } .pending { background:#d9dee5; }
+  .live-results-embed { margin:1rem 0; padding:1rem; border:1px solid #dce1e8; border-radius:14px; background:#fff; }
+  .embed-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:.8rem; }
+  .embed-heading h2 { margin:0; font-family:Newsreader,Georgia,serif; font-size:1.65rem; }
+  .embed-heading a { color:#1c5a9c; font-size:.75rem; font-weight:800; }
+  .source-status { padding:.45rem .65rem; border:1px solid #dce1e8; border-radius:999px; color:#687586; font-size:.6rem; font-weight:800; letter-spacing:.08em; }
+  .embed-intro { max-width:58rem; margin:.35rem 0 1rem; color:#657184; font-size:.78rem; line-height:1.5; }
+  .live-source-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.7rem; }
+  .guardian-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:.7rem 1.1rem; padding:.7rem .85rem; border:1px solid #dce1e8; border-bottom:0; border-radius:10px 10px 0 0; background:#f7f9fb; color:#536071; font-size:.64rem; font-weight:800; letter-spacing:.04em; }
+  .guardian-toolbar a { margin-left:auto; color:#1c5a9c; text-decoration:none; }
+  .guardian-live-dot { display:inline-block; width:.5rem; height:.5rem; margin-right:.35rem; border-radius:50%; background:#c52832; box-shadow:0 0 0 3px #c528321c; }
+  .guardian-frame-wrap { height:760px; min-height:540px; overflow:hidden; border:1px solid #dce1e8; border-radius:0 0 10px 10px; background:#fff; }
+  .guardian-frame-wrap iframe { display:block; width:100%; height:100%; border:0; background:#fff; }
+  .guardian-fallback { margin:.55rem 0 1rem; color:#778291; font-size:.67rem; line-height:1.45; }
+  .guardian-fallback a { color:#1c5a9c; font-weight:800; }
+  .live-source-card { display:flex; flex-direction:column; gap:.45rem; min-height:125px; padding:1rem; border:1px solid #dce1e8; border-radius:10px; color:#17202c; text-decoration:none; background:#fbfcfd; }
+  .live-source-card:hover { border-color:#9ba8b8; background:#f4f7fb; }
+  .live-source-card span { color:#687586; font-size:.59rem; font-weight:800; letter-spacing:.09em; }
+  .live-source-card strong { font-family:Newsreader,Georgia,serif; font-size:1.12rem; line-height:1.2; }
+  .live-source-card em { margin-top:auto; color:#1c5a9c; font-size:.7rem; font-style:normal; font-weight:800; }
+  .map-live-links { display:flex; flex-wrap:wrap; gap:.65rem 1rem; padding:.1rem 1.25rem 1rem; }
+  .map-live-links a { color:#1c5a9c; font-size:.74rem; font-weight:800; text-decoration:none; }
+  .map-live-links a:hover { text-decoration:underline; }
+  .map-layout { display:grid; grid-template-columns:minmax(0,1fr) 290px; gap:0; min-height:460px; }
+  .map-canvas { position:relative; min-width:0; padding:.5rem; background:#f7f8fa; }
+  #us-map { display:block; width:100%; height:auto; min-height:350px; }
+  .state-shape { stroke:#fff; stroke-width:1.3; vector-effect:non-scaling-stroke; cursor:pointer; transition:fill .2s ease, opacity .2s ease; }
+  .state-shape:hover,.state-shape:focus { stroke:#17202c; stroke-width:2.4; outline:none; }
+  .state-shape.selected { stroke:#17202c; stroke-width:2.8; }
+  .state-label { fill:#263241; font-size:10px; font-weight:800; text-anchor:middle; pointer-events:none; }
+  .map-loading { position:absolute; z-index:2; top:1rem; left:1rem; padding:.55rem .75rem; border-radius:8px; background:#fff; color:#5b6674; font-size:.75rem; box-shadow:0 2px 12px #17202c12; }
+  .map-loading.hidden { display:none; }
+  .state-detail { padding:1.2rem; border-left:1px solid #e3e7ec; background:#fff; }
+  .state-detail h3 { margin:.25rem 0 .45rem; font-family:Newsreader,Georgia,serif; font-size:1.65rem; }
+  .detail-status { color:#667283; font-size:.78rem; line-height:1.5; }
+  .detail-races { display:grid; gap:.65rem; margin-top:1rem; }
+  .race-card { padding:.75rem; border:1px solid #e1e5eb; border-radius:9px; }
+  .race-card h4 { margin:0 0 .5rem; font-size:.75rem; }
+  .candidate-row { display:flex; justify-content:space-between; gap:.5rem; padding:.25rem 0; color:#4a5665; font-size:.72rem; }
+  .candidate-row strong { color:#17202c; font-variant-numeric:tabular-nums; }
+  .party-dot { display:inline-block; width:.48rem; height:.48rem; margin-right:.3rem; border-radius:50%; }
+  .map-note { margin:0; padding:.8rem 1.2rem 1rem; color:#6a7584; font-size:.68rem; line-height:1.5; }
+  .cartogram-fallback { display:grid; grid-template-columns:repeat(10,minmax(0,1fr)); gap:5px; padding:1rem; }
+  .cartogram-state { min-height:43px; border:1px solid #cbd3dd; border-radius:5px; background:#d9dee5; color:#263241; font-size:.72rem; font-weight:800; cursor:pointer; }
+  .cartogram-state:hover,.cartogram-state:focus { outline:2px solid #17202c; outline-offset:1px; }
+  .cartogram-state.selected { border:2px solid #17202c; background:#c5cfdb; box-shadow:inset 0 0 0 1px #fff; }
+  .cartogram-caption { padding:0 1rem 1rem; color:#687586; font-size:.68rem; }
+  .results-bottom { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1rem 0; }
+  .results-bottom > div { padding:1.15rem; border:1px solid #dce1e8; border-radius:12px; }
+  .results-bottom p { color:#657184; font-size:.8rem; line-height:1.55; }
+  .source-card { background:#f6f7f9; }
+  .source-card strong { font-size:.8rem; }
+  .source-card a { color:#1c5a9c; font-size:.75rem; font-weight:700; text-decoration:underline; text-underline-offset:3px; }
+  .data-footer { display:flex; justify-content:space-between; gap:1rem; padding-top:.8rem; border-top:1px solid #dce1e8; color:#778291; font-size:.65rem; }
+
+  .fox-results-panel { margin:1rem 0 1.1rem; border:1px solid #dce1e8; border-radius:12px; overflow:hidden; background:#f8f9fb; }
+  .fox-results-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem 1.1rem; }
+  .fox-results-heading h3 { margin:0; font-family:Newsreader,Georgia,serif; font-size:1.45rem; }
+  .fox-results-heading p:not(.eyebrow) { margin:.35rem 0 0; color:#657184; font-size:.72rem; line-height:1.45; }
+  .fox-results-heading > a { flex-shrink:0; padding:.65rem .85rem; border-radius:7px; background:#17202c; color:#fff; font-size:.7rem; font-weight:800; text-decoration:none; }
+  .fox-frame-wrap { position:relative; height:650px; background:#fff; border-top:1px solid #dce1e8; }
+  .fox-frame-wrap iframe { width:100%; height:100%; border:0; background:#fff; }
+  .fox-frame-fallback { position:absolute; inset:auto 0 0; padding:.65rem .9rem; background:#17202c; color:#fff; font-size:.68rem; text-align:center; }
+  .fox-frame-fallback a { color:#fff; font-weight:800; text-decoration:underline; }
+  .race-more { display:block; margin:.8rem auto 0; padding:.65rem 1rem; border:1px solid #cbd3dd; border-radius:7px; background:#f7f8fa; color:#263445; font:800 .72rem Inter,sans-serif; cursor:pointer; }
+  .race-more:hover { background:#edf1f5; }
+  .race-explorer { margin:1rem 0; padding:1.1rem; border:1px solid #dce1e8; border-radius:14px; background:#fff; }
+  .explorer-head { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; }
+  .explorer-head h2 { margin:0; font-family:Newsreader,Georgia,serif; font-size:1.65rem; }
+  .explorer-head p:not(.eyebrow) { margin:.45rem 0 .8rem; color:#657184; font-size:.76rem; line-height:1.45; }
+  .explorer-controls { display:flex; justify-content:space-between; align-items:center; gap:.8rem; flex-wrap:wrap; padding:.7rem 0; border-top:1px solid #edf0f3; }
+  .race-tabs { display:flex; gap:.35rem; flex-wrap:wrap; }
+  .race-tab { border:1px solid #dce1e8; border-radius:7px; background:#fff; color:#536071; padding:.55rem .75rem; font:700 .7rem Inter, sans-serif; cursor:pointer; }
+  .race-tab.active { background:#17202c; border-color:#17202c; color:#fff; }
+  #race-search { min-width:min(100%,280px); border:1px solid #dce1e8; border-radius:7px; padding:.6rem .75rem; font: .75rem Inter,sans-serif; }
+  .race-table-wrap { overflow-x:auto; }
+  .race-table { width:100%; border-collapse:collapse; font-size:.73rem; }
+  .race-table th { padding:.65rem .55rem; border-bottom:1px solid #dce1e8; color:#687586; text-align:left; font-size:.62rem; letter-spacing:.06em; text-transform:uppercase; }
+  .race-table td { padding:.7rem .55rem; border-bottom:1px solid #edf0f3; vertical-align:top; }
+  .race-table td:first-child { min-width:170px; font-weight:800; }
+  .race-table td:nth-child(2) { min-width:260px; }
+  .race-candidate { display:flex; justify-content:space-between; gap:1rem; padding:.18rem 0; }
+  .race-candidate.leader { font-weight:800; }
+  .race-party { display:inline-block; width:.48rem; height:.48rem; margin-right:.35rem; border-radius:50%; vertical-align:middle; }
+  .race-empty { color:#778291; text-align:center; padding:1.4rem !important; }
+  .explorer-note { margin:.7rem 0 0; color:#778291; font-size:.65rem; line-height:1.45; }
+  .explorer-note a { color:#1c5a9c; font-weight:800; }
+  @media(max-width:760px) { .explorer-head { flex-direction:column; } .explorer-controls { align-items:stretch; } #race-search { width:100%; } .fox-results-heading { align-items:flex-start; flex-direction:column; } .fox-frame-wrap { height:520px; } }
+
+  .news-desk { margin:1.25rem 0; padding:1.2rem; border:1px solid #dce1e8; border-radius:14px; background:#fff; }
+  .news-desk-heading { display:flex; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
+  .news-desk h2 { margin:0; font-family:Newsreader,Georgia,serif; font-size:1.7rem; }
+  .news-desk-heading p:not(.eyebrow) { max-width:54rem; margin:.45rem 0 0; color:#657184; font-size:.78rem; line-height:1.5; }
+  .news-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65rem; }
+  .news-source { display:flex; flex-direction:column; align-items:flex-start; gap:.35rem; min-height:130px; padding:.9rem; border:1px solid #e1e5eb; border-radius:10px; color:#17202c; text-decoration:none; transition:border-color .15s ease,background .15s ease; }
+  .news-source:hover { border-color:#9ba8b8; background:#f8f9fb; }
+  .news-source.featured { border-color:#b9c9dc; background:#f4f7fb; }
+  .news-kicker { color:#687586; font-size:.59rem; font-weight:800; letter-spacing:.1em; }
+  .news-source strong { font-family:Newsreader,Georgia,serif; font-size:1.15rem; line-height:1.15; }
+  .news-source span:not(.news-kicker) { color:#657184; font-size:.72rem; line-height:1.4; }
+  .news-source em { margin-top:auto; color:#1c5a9c; font-size:.68rem; font-style:normal; font-weight:800; }
+  .news-disclaimer { margin:.8rem 0 0; color:#778291; font-size:.65rem; line-height:1.45; }
+  @keyframes pulse { 50% { opacity:.55; } }
+  @media(max-width:760px) {
+    .election-header { align-items:flex-start; flex-direction:column; }
+    .live-state { align-self:flex-start; }
+    .score-strip { grid-template-columns:1fr 1fr; }
+    .score-meta { grid-column:1 / -1; }
+    .panel-heading { align-items:flex-start; flex-direction:column; }
+    .map-layout { grid-template-columns:1fr; }
+    .state-detail { border-left:0; border-top:1px solid #e3e7ec; }
+    #us-map { min-height:220px; }
+    .results-bottom { grid-template-columns:1fr; }
+    .news-grid { grid-template-columns:1fr; }
+    .live-source-actions { grid-template-columns:1fr; }
+    .guardian-frame-wrap { height:72vh; min-height:500px; }
+    .guardian-toolbar { align-items:flex-start; flex-direction:column; }
+    .guardian-toolbar a { margin-left:0; }
+    .cartogram-fallback { grid-template-columns:repeat(5,minmax(0,1fr)); }
+    .data-footer { flex-direction:column; }
+  }
+.election-page{--ink:#eef3fa;--muted:#aab8ca;--line:#26364a;color:var(--ink);background:#091321;margin:0 -1rem;padding:1.25rem 1rem 3rem;}
+.election-header{position:relative;isolation:isolate;min-height:230px;align-items:center;padding:2rem 2rem 2.2rem;border:1px solid #26374d;border-radius:18px;background:radial-gradient(ellipse at 78% 35%,#203c5c 0,transparent 43%),linear-gradient(120deg,#101f32,#0a1422 72%);overflow:hidden;}
+.election-header:after{content:'2026';position:absolute;right:2%;bottom:-.42em;z-index:-1;font:900 clamp(8rem,22vw,17rem)/1 Georgia,serif;color:#ffffff08;letter-spacing:-.09em;}
+.eyebrow{color:#9eafc4;}.election-header h1{color:#fff;font-size:clamp(3rem,7vw,6rem);letter-spacing:-.055em;}.election-header h1 span{color:#f05b64;}.dek{color:#bdc9d8;font-size:1.08rem;max-width:38rem;}
+.live-state{background:#111f30;border-color:#34485f;color:#e8eef6;}.live-state.is-live{border-color:#8c313b;}.live-dot{background:#f05b64;}
+.score-strip{gap:.85rem;margin:1rem 0 1.25rem;}.score-card{position:relative;min-height:135px;padding:1.2rem 1.3rem;border:1px solid #2a3b50;border-radius:14px;background:linear-gradient(145deg,#15263a,#0e1a2a);box-shadow:0 12px 30px #0003;}.score-label{color:#aebdd0;letter-spacing:.12em;}.score-card strong{color:#fff;font-size:3.3rem;}.score-card small{color:#9eafc4;}
+.map-panel,.live-results-embed,.race-explorer{border:1px solid #293b51;border-radius:17px;background:#0e1b2b;color:#eaf0f7;box-shadow:0 16px 38px #0003;}.panel-heading h2,.embed-heading h2,.explorer-head h2,.results-bottom h2,.news-desk h2{color:#fff;font-size:clamp(1.7rem,3vw,2.3rem);}.map-period{border-color:#34485f;color:#b9c7d8;background:#142338;}
+.map-legend{border-color:#26384e;color:#c1ccda;}.map-layout{background:#0b1726;}.map-canvas{min-height:500px;background:radial-gradient(ellipse at 50% 45%,#1b3048,#0b1726 70%);}.map-canvas svg{min-height:500px;}.state-shape{stroke:#091321;stroke-width:2;}.state-shape:hover,.state-shape.selected{stroke:#fff;stroke-width:3;filter:brightness(1.2);}.state-label{fill:#fff;font-weight:800;text-shadow:0 1px 3px #000;}.state-detail{background:#101f31;border-left:1px solid #2a3d54;color:#eaf0f7;}.state-detail h3{color:#fff;font-size:1.65rem;}.detail-status,.map-note,.explorer-note{color:#aebdd0;}.race-card{background:#17283c;border-color:#30465f;color:#edf3fa;}
+.map-live-links{background:#0d1928;border-color:#2a3b50;}.map-live-links a{color:#9fc8ff;}.live-results-embed{padding:1.3rem;}.embed-intro{color:#b5c3d3;}.source-status{background:#192c42;color:#d6e5f6;border-color:#344a63;}.guardian-toolbar{background:#14253a;border-color:#2d425b;color:#d8e2ee;}.guardian-toolbar a{color:#9fc8ff;}.live-source-card,.news-source,.source-card{background:linear-gradient(145deg,#16283d,#101e2e);border-color:#2b4058;color:#edf3fa;}.live-source-card strong,.news-source strong,.source-card strong{color:#fff;}.live-source-card span,.live-source-card em,.news-source span,.news-source em,.source-card p{color:#b2c1d2;}
+.race-explorer{padding:1.3rem;}.explorer-head p,.results-bottom p,.news-desk p{color:#b2c1d2;}.race-tab{border-color:#3a4e66;color:#d4deea;background:#13243a;}.race-tab.active{background:#e9eef5;color:#102034;border-color:#e9eef5;}.explorer-controls input{background:#122338;border:1px solid #344a63;color:#fff;}.race-table th{background:#15283d;color:#b9c8d9;border-color:#2d4057;}.race-table td{border-color:#273a50;color:#e6edf5;}.race-table tr:hover{background:#14263b;}.race-empty{color:#aebdd0;}
+.results-bottom,.news-desk{border-color:#2a3b50;}.news-grid{gap:.8rem;}.news-source{min-height:170px;border-radius:13px;}.news-source.featured{border-color:#8e3c46;background:linear-gradient(140deg,#3b202b,#162338);}.news-disclaimer,.data-footer{color:#9eafc4;border-color:#2a3b50;}.data-footer{background:#0b1726;}
+.map-note{padding:1rem 1.25rem;background:#13243a;border-top:1px solid #293d54;}.map-loading{color:#c5d2e1;}.cartogram-state{background:#182b41;color:#eaf0f7;border-color:#344b65;}
+@media(max-width:760px){.election-page{margin:0 -.75rem;padding:.75rem .75rem 2rem}.election-header{padding:1.4rem;min-height:190px;align-items:flex-start;flex-direction:column}.score-strip{grid-template-columns:1fr 1fr}.score-card:last-child{grid-column:1/-1}.map-layout{grid-template-columns:1fr}.map-canvas,.map-canvas svg{min-height:340px}.state-detail{border-left:0;border-top:1px solid #2a3d54}.panel-heading{align-items:flex-start;flex-direction:column}.map-period{white-space:normal}.news-grid{grid-template-columns:1fr 1fr}}
+  .fox-results-panel .fox-results-heading h3 { color:#17202c; }
+  .fox-results-panel .fox-results-heading .eyebrow { color:#657184; }
+</style>
+
+<script is:inline type="module">
+  // Se cargan aparte: si el CDN falla, la página sigue con la vista alternativa y con los datos.
+  let geoAlbersUsa, geoPath, feature;
+
+  const GEO_URL = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
+  const FIPS = {
+    '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT','10':'DE','12':'FL','13':'GA',
+    '15':'HI','16':'ID','17':'IL','18':'IN','19':'IA','20':'KS','21':'KY','22':'LA','23':'ME','24':'MD',
+    '25':'MA','26':'MI','27':'MN','28':'MS','29':'MO','30':'MT','31':'NE','32':'NV','33':'NH','34':'NJ',
+    '35':'NM','36':'NY','37':'NC','38':'ND','39':'OH','40':'OK','41':'OR','42':'PA','44':'RI','45':'SC',
+    '46':'SD','47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA','54':'WV','55':'WI','56':'WY'
+  };
+  const NAMES = {
+    AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',
+    HI:'Hawái',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Luisiana',ME:'Maine',MD:'Maryland',
+    MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Misisipi',MO:'Misuri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'Nuevo Hampshire',NJ:'Nueva Jersey',
+    NM:'Nuevo México',NY:'Nueva York',NC:'Carolina del Norte',ND:'Dakota del Norte',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pensilvania',RI:'Rhode Island',SC:'Carolina del Sur',
+    SD:'Dakota del Sur',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'Virginia Occidental',WI:'Wisconsin',WY:'Wyoming'
+  };
+  const statePaths = new Map();
+  let selectedState = null;
+  let allRaceData = [];
+  let activeRaceTab = 'governor';
+  const partsLoading = new Set(['senate','house','governor']);
+  let raceSearchTerm = '';
+  let raceDisplayLimit = 12;
+
+  const $ = (id) => document.getElementById(id);
+  const stateCode = (f) => FIPS[String(f.id).padStart(2,'0')];
+  const liveByState = new Map();
+  const stateNameToCode = Object.fromEntries(Object.entries(NAMES).flatMap(([code,name]) => [[name.toLowerCase(),code],[code.toLowerCase(),code]]));
+  const PARTY_COLORS = { REP:'#c64b50', REPUBLICAN:'#c64b50', R:'#c64b50', DEM:'#3978c5', DEMOCRAT:'#3978c5', D:'#3978c5', IND:'#9272a8', INDEPENDENT:'#9272a8' };
+  const clean = value => String(value ?? '').trim();
+  function partyCode(candidate) {
+    const raw = candidate?.party ?? candidate?.party_code ?? candidate?.party_name ?? candidate?.affiliation;
+    const party = clean(typeof raw === 'object' ? (raw.name || raw.abbreviation || raw.code || '') : raw).toUpperCase();
+    if (party.includes('REP') || party === 'R' || party.includes('GOP')) return 'REP';
+    if (party.includes('DEM') || party === 'D') return 'DEM';
+    if (party.includes('IND')) return 'IND';
+    return party || 'OTHER';
+  }
+  function candidateVotes(candidate) {
+    const raw = candidate?.votes ?? candidate?.vote_count ?? candidate?.total_votes ?? candidate?.vote_total ?? candidate?.votes_received ?? candidate?.voteCount ?? candidate?.totalVotes ?? candidate?.count;
+    const n = Number(String(raw ?? '').replace(/,/g,''));
+    return Number.isFinite(n) ? n : 0;
+  }
+  function inferState(race) {
+    const directValue = race?.province || race?.state || race?.state_code || race?.statePostal || race?.state_postal || race?.state_abbr || race?.jurisdiction_code;
+    const direct = clean(typeof directValue === 'object' ? (directValue.abbreviation || directValue.code || directValue.name || '') : directValue).toUpperCase();
+    if (NAMES[direct]) return direct;
+    const district = race?.district_details || race?.district || {};
+    const locationValue = race?.location || race?.jurisdiction || race?.region || race?.province_name || race?.state_name || race?.name || district?.district_name || district?.name;
+    const location = clean(typeof locationValue === 'object' ? (locationValue.name || locationValue.label || '') : locationValue);
+    const normalized = location.toLowerCase();
+    for (const [name,code] of Object.entries(stateNameToCode)) {
+      if (normalized.includes(name)) return code;
+    }
+    const match = normalized.match(/\b([a-z]{2})\b/);
+    return match && NAMES[match[1].toUpperCase()] ? match[1].toUpperCase() : null;
+  }
+  function raceCandidates(race) {
+    const value = race?.candidates || race?.contenders || race?.results || race?.candidate_results || race?.race_results;
+    return Array.isArray(value) ? value : [];
+  }
+  function racePriority(race) {
+    if (race?.office_type === 'governor') return 1;
+    if (race?.office_type === 'senate') return 2;
+    if (race?.office_type === 'house') return 3;
+    const name = clean(race?.race_name || race?.name || race?.title || race?.office || race?.office_title || race?.contest || race?.description || race?.election_type || race?.race_type || race?.type).toLowerCase();
+    if (name.includes('governor')) return 1;
+    if (name.includes('u.s. senate') || name.includes('us senate') || name.includes('senate')) return 2;
+    if (name.includes('u.s. house') || name.includes('us house') || name.includes('house') || name.includes('congressional district')) return 3;
+    return 4;
+  }
+  function renderRaceExplorer(races) {
+    allRaceData = Array.isArray(races) ? races : [];
+    const body = $('race-table-body');
+    if (!body) return;
+    const filtered = allRaceData.filter(race => {
+      const priority = racePriority(race);
+      const tabMatch = activeRaceTab === 'all' ||
+        (activeRaceTab === 'governor' && priority === 1) ||
+        (activeRaceTab === 'senate' && priority === 2) ||
+        (activeRaceTab === 'house' && priority === 3);
+      const candidates = raceCandidates(race);
+      const haystack = [race.race_name,race.name,race.title,race.office,race.contest,race.state,race.province,race.district,
+        ...candidates.map(x => x.name || x.candidate_name || x.full_name)].join(' ').toLowerCase();
+      return tabMatch && haystack.includes(raceSearchTerm);
+    });
+    const moreButton = $('race-more');
+    $('race-count').textContent = filtered.length + ' CONTIENDAS';
+    body.replaceChildren();
+    if (moreButton) moreButton.hidden = true;
+    if (!filtered.length) {
+      const tr = document.createElement('tr'); const td = document.createElement('td');
+      td.colSpan = 3; td.className = 'race-empty';
+      td.textContent = activeRaceTab !== 'all' && !raceSearchTerm && partsLoading.has(activeRaceTab) ? 'Cargando contiendas desde civicAPI…' : allRaceData.length ? 'No hay contiendas que coincidan con la búsqueda.' : 'La conexión está preparada. Las contiendas aparecerán cuando civicAPI publique sus registros.';
+      tr.appendChild(td); body.appendChild(tr); return;
+    }
+    filtered.sort((a,b) => racePriority(a)-racePriority(b) || String(a.race_name||a.name||'').localeCompare(String(b.race_name||b.name||'')));
+    const visibleRaces = filtered.slice(0, raceDisplayLimit);
+    $('race-count').textContent = visibleRaces.length + ' DE ' + filtered.length + ' CONTIENDAS';
+    visibleRaces.forEach(race => {
+      const tr = document.createElement('tr');
+      const name = document.createElement('td');
+      name.textContent = clean(race.race_name || race.name || race.title || race.office || race.contest || 'Contienda');
+      const candidateCell = document.createElement('td');
+      const candidates = raceCandidates(race).map(candidate => ({
+        name: clean(candidate.name || candidate.candidate_name || candidate.full_name || candidate.display_name) || 'Candidato',
+        party: partyCode(candidate), votes: candidateVotes(candidate), winner: Boolean(candidate.winner)
+      })).sort((a,b) => Number(b.winner) - Number(a.winner) || b.votes-a.votes);
+      if (!candidates.length) candidateCell.textContent = 'Candidaturas aún no publicadas';
+      candidates.slice(0,5).forEach((candidate,index) => {
+        const line = document.createElement('div'); line.className = 'race-candidate' + (index===0 && (candidate.votes>0 || candidate.winner) ? ' leader':'');
+        const label = document.createElement('span'); const dot = document.createElement('i');
+        dot.className = 'race-party'; dot.style.background = PARTY_COLORS[candidate.party] || '#9272a8';
+        label.append(dot, document.createTextNode(candidate.name + ' · ' + candidate.party));
+        const votes = document.createElement('strong'); votes.textContent = candidate.votes ? candidate.votes.toLocaleString('en-US') : '—';
+        line.append(label,votes); candidateCell.appendChild(line);
+      });
+      const status = document.createElement('td');
+      status.textContent = clean(race.status || race.race_status || race.call_status || 'Sin declarar');
+      tr.append(name,candidateCell,status); body.appendChild(tr);
+    });
+    if (moreButton && filtered.length > raceDisplayLimit) {
+      moreButton.hidden = false;
+      moreButton.textContent = 'Mostrar las siguientes ' + Math.min(12, filtered.length - raceDisplayLimit) + ' contiendas';
+    }
+  }
+
+  function updateMapFromRaces(races) {
+    renderRaceExplorer(races);
+    const grouped = new Map();
+    for (const race of races) {
+      const code = inferState(race);
+      const candidates = raceCandidates(race).map(candidate => ({
+        name: clean(candidate.name || candidate.candidate_name || candidate.full_name || candidate.display_name) || 'Candidato',
+        party: partyCode(candidate),
+        votes: candidateVotes(candidate),
+        winner: Boolean(candidate.winner),
+        percent: candidate.vote_percentage ?? candidate.percentage ?? candidate.pct
+      })).filter(candidate => candidate.name !== 'Candidato' || candidate.votes > 0);
+      if (!code || !candidates.length || candidates.every(candidate => candidate.votes === 0 && !candidate.winner)) continue;
+      candidates.sort((a,b) => Number(b.winner) - Number(a.winner) || b.votes - a.votes);
+      const item = {
+        code,
+        name: clean(race.race_name || race.name || race.title || race.office || race.contest) || 'Contienda estatal',
+        status: clean(race.status || race.race_status || race.call_status || 'Conteo parcial'),
+        reporting: race.percent_reporting ?? race.reporting_pct ?? race.precincts_reporting ?? race.pct_reporting ?? null,
+        totalVotes: candidates.reduce((sum,candidate) => sum + candidate.votes,0),
+        candidates,
+        party: candidates[0].party,
+        priority: racePriority(race),
+        updated: race.updated_at || race.last_updated || race.timestamp || null
+      };
+      if (!grouped.has(code)) grouped.set(code, []);
+      grouped.get(code).push(item);
+    }
+    liveByState.clear();
+    for (const [code, items] of grouped) {
+      items.sort((a,b) => a.priority - b.priority || b.totalVotes - a.totalVotes);
+      liveByState.set(code, items[0]);
+    }
+    renderMap();
+    const total = liveByState.size;
+    $('civicapi-status').textContent = total ? 'DATOS RECIBIDOS' : 'ESPERANDO RECUENTOS';
+    $('live-label').textContent = total ? 'RESULTADOS PARCIALES · civicAPI' : 'CONECTADO · AÚN SIN RECUENTOS';
+    $('live-label').parentElement.classList.toggle('is-live', total > 0);
+        $('updated-at').textContent = total + ' estados con datos de contiendas publicadas por civicAPI.';
+  }
+  function electionColor(code) {
+    const result = liveByState.get(code);
+    return result ? (PARTY_COLORS[result.party] || '#9272a8') : '#d9dee5';
+  }
+  function renderMap() {
+    for (const [code, path] of statePaths) {
+      path.setAttribute('fill', electionColor(code));
+      path.classList.toggle('selected', selectedState === code);
+    }
+    document.querySelectorAll('.cartogram-state').forEach(button => {
+      const result = liveByState.get(button.textContent);
+      button.style.background = result ? (PARTY_COLORS[result.party] || '#9272a8') : '';
+    });
+    $('states-live').textContent = String(liveByState.size);
+    $('house-r').textContent = '435';
+    $('house-d').textContent = '35';
+    if (selectedState) renderDetail(selectedState);
+  }
+  function renderDetail(code) {
+    $('detail-title').textContent = NAMES[code] || code;
+    const result = liveByState.get(code);
+    if (!result) {
+      $('detail-status').textContent = 'civicAPI todavía no publica recuentos suficientes para este estado. Se actualizará automáticamente.';
+      $('detail-races').innerHTML = '<p class="detail-status">Fuente: <a href="https://civicapi.org/results" target="_blank" rel="noopener noreferrer">civicAPI ↗</a></p>';
+      return;
+    }
+    $('detail-status').textContent = result.name + ' · ' + result.status + (result.reporting != null ? ' · ' + result.reporting + '% informado' : '');
+    const card = document.createElement('div');
+    card.className = 'race-card';
+    const heading = document.createElement('h4');
+    heading.textContent = (result.candidates[0]?.winner ? 'Proyección · ' : 'Liderazgo parcial · ') + result.name;
+    card.appendChild(heading);
+    result.candidates.slice(0,4).forEach(candidate => {
+      const row = document.createElement('div');
+      row.className = 'candidate-row';
+      const label = document.createElement('span');
+      const dot = document.createElement('i');
+      dot.className = 'party-dot';
+      dot.style.background = PARTY_COLORS[candidate.party] || '#9272a8';
+      label.append(dot, document.createTextNode(candidate.name + ' (' + candidate.party + ')'));
+      const votes = document.createElement('strong');
+      votes.textContent = candidate.votes.toLocaleString('en-US');
+      row.append(label, votes);
+      card.appendChild(row);
+    });
+    const source = document.createElement('p');
+    source.className = 'detail-status';
+    source.append('Fuente: civicAPI · recuento no certificado. ');
+    const link = document.createElement('a');
+    link.href = 'https://civicapi.org/results';
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = 'Ver fuente ↗';
+    source.appendChild(link);
+    card.appendChild(source);
+    $('detail-races').replaceChildren(card);
+  }
+  const REFRESH_MS = 30000;
+  const OFFICE_LABELS = { governor:'Gobernación', senate:'Senado', house:'Cámara de Representantes' };
+  const clock = date => date.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false});
+  let refreshTimer = null;
+  let refreshing = false;
+  let failedRefreshes = 0;
+  let lastGoodAt = null;
+  let lastAttemptAt = 0;
+
+  function displayRace(race) {
+    const place = NAMES[race.state] || race.state || '';
+    const district = race.district === 'AL' ? ' (distrito único)' : race.district ? ' ' + Number(race.district) : '';
+    return {...race, race_name: (OFFICE_LABELS[race.office_type] || 'Contienda') + ' · ' + place + district};
+  }
+  function scheduleRefresh() {
+    window.clearTimeout(refreshTimer);
+    const delay = failedRefreshes ? Math.min(60000, 10000 * 2 ** (failedRefreshes - 1)) : REFRESH_MS;
+    refreshTimer = window.setTimeout(refreshElectionData, delay + Math.random() * 3000);
+  }
+  const PARTS = [['senate','Senado'],['house','Cámara'],['governor','Gobernaciones']];
+  const partRaces = new Map();
+  const mergedRaces = () => [...partRaces.values()].flat();
+  async function fetchPart(part) {
+    const response = await fetch('/api/election-results.json?part=' + part, {signal: AbortSignal.timeout(58000)});
+    if (!response.ok) throw new Error('el servicio respondió HTTP ' + response.status);
+    const payload = await response.json();
+    if (!payload?.ok || !Array.isArray(payload.races)) throw new Error('respuesta sin datos');
+    const races = payload.races.map(displayRace);
+    // Una respuesta vacía nunca borra lo que el lector ya está viendo.
+    if (part === 'governor') {
+      // Las gobernaciones llegan de a poco: se suman a las que ya están en pantalla.
+      const known = new Map((partRaces.get(part) || []).map(race => [race.id, race]));
+      races.forEach(race => known.set(race.id, race));
+      partRaces.set(part, [...known.values()]);
+    } else if (races.length || !partRaces.has(part)) {
+      partRaces.set(part, races);
+    }
+    partsLoading.delete(part);
+    // Cada parte se muestra apenas llega, sin esperar a las más lentas.
+    updateMapFromRaces(mergedRaces());
+    return payload;
+  }
+  async function refreshElectionData() {
+    if (refreshing) return;
+    if (document.hidden && lastGoodAt) { scheduleRefresh(); return; }
+    refreshing = true;
+    lastAttemptAt = Date.now();
+    const status = $('civicapi-status');
+    if (!allRaceData.length) status.textContent = 'ACTUALIZANDO';
+    try {
+      const results = await Promise.allSettled(PARTS.map(([part]) => fetchPart(part)));
+      const delayed = PARTS.filter(([part], index) => results[index].status === 'rejected' || results[index].value.stale).map(([,label]) => label);
+      const answered = results.filter(result => result.status === 'fulfilled').map(result => result.value);
+      partsLoading.clear();
+      results.forEach(result => { if (result.status === 'rejected') console.error('[Diario Federal civicAPI]', result.reason); });
+      const hasData = mergedRaces().length > 0;
+      if (!answered.length) {
+        failedRefreshes += 1;
+        if (hasData) {
+          status.textContent = 'ÚLTIMOS DATOS · REINTENTANDO';
+          $('civicapi-refresh-time').textContent = 'Datos de las ' + clock(lastGoodAt) + '. Reintentando la conexión…';
+        } else {
+          status.textContent = 'REINTENTANDO';
+          $('civicapi-refresh-time').textContent = 'No se pudo actualizar todavía. Reintentando la conexión…';
+          $('live-label').textContent = 'RECONECTANDO CON civicAPI';
+          $('live-label').parentElement.classList.remove('is-live');
+        }
+        return;
+      }
+      failedRefreshes = delayed.length ? 1 : 0;
+      lastGoodAt = new Date();
+      if (allRaceData.length) renderRaceExplorer(allRaceData); else renderRaceExplorer([]);
+      if (!hasData && answered.every(payload => payload.testData)) {
+        status.textContent = 'ESPERANDO DATOS REALES';
+        $('civicapi-refresh-time').textContent = 'civicAPI está en modo de prueba; esos números no se publican.';
+      } else if (!hasData) {
+        status.textContent = 'ESPERANDO RECUENTOS';
+        $('civicapi-refresh-time').textContent = 'Conexión activa; esperando datos de las contiendas.';
+      } else {
+        status.textContent = delayed.length ? 'DATOS RECIBIDOS · ' + delayed.length + ' DEMORADA' + (delayed.length > 1 ? 'S' : '') : 'DATOS RECIBIDOS';
+        $('civicapi-refresh-time').textContent = 'Última actualización: ' + clock(lastGoodAt) + (delayed.length ? ' · demorado: ' + delayed.join(', ') + '; reintentando' : '');
+      }
+    } finally {
+      refreshing = false;
+      scheduleRefresh();
+    }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && Date.now() - lastAttemptAt > REFRESH_MS) refreshElectionData();
+  });
+  window.addEventListener('online', () => refreshElectionData());
+  function drawStates(topology) {
+    const collection = feature(topology, topology.objects.states);
+    const svg = $('us-map');
+    const projection = geoAlbersUsa().fitSize([940,570], collection);
+    const pathGenerator = geoPath(projection);
+    const ns = 'http://www.w3.org/2000/svg';
+    collection.features.forEach(f => {
+      const code = stateCode(f);
+      if (!code) return;
+      const path = document.createElementNS(ns,'path');
+      path.setAttribute('d',pathGenerator(f));
+      path.setAttribute('class','state-shape');
+      path.setAttribute('fill',electionColor(code));
+      path.setAttribute('tabindex','0');
+      path.setAttribute('role','button');
+      path.setAttribute('aria-label',NAMES[code] || code);
+      const title = document.createElementNS(ns,'title');
+      title.textContent = NAMES[code] + ' · resultados 3 de noviembre de 2026';
+      path.appendChild(title);
+      svg.appendChild(path);
+      const centroid = pathGenerator.centroid(f);
+      if (Number.isFinite(centroid[0]) && Number.isFinite(centroid[1])) {
+        const label = document.createElementNS(ns,'text');
+        label.setAttribute('x',centroid[0]);
+        label.setAttribute('y',centroid[1] + 3);
+        label.setAttribute('class','state-label');
+        label.textContent = code;
+        svg.appendChild(label);
+      }
+      path.addEventListener('click', () => { selectedState = code; renderMap(); });
+      path.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectedState = code; renderMap(); } });
+      statePaths.set(code,path);
+    });
+    $('map-loading').classList.add('hidden');
+    renderMap();
+    refreshElectionData();
+  }
+  function drawCartogramFallback() {
+    const svg = $('us-map');
+    svg.style.display = 'none';
+    const canvas = $('map-canvas');
+    const grid = document.createElement('div');
+    grid.className = 'cartogram-fallback';
+    Object.keys(NAMES).sort().forEach(code => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'cartogram-state';
+      button.textContent = code;
+      button.title = NAMES[code];
+      button.setAttribute('aria-label',NAMES[code]);
+      button.addEventListener('click', () => {
+        selectedState = code;
+        grid.querySelectorAll('.cartogram-state').forEach(item => item.classList.toggle('selected', item === button));
+        renderDetail(code);
+      });
+      grid.appendChild(button);
+    });
+    const caption = document.createElement('p');
+    caption.className = 'cartogram-caption';
+    caption.textContent = 'Seleccioná cualquiera de los 50 estados. Los colores se actualizan cuando civicAPI publica recuentos verificables de 2026.';
+    canvas.appendChild(grid);
+    canvas.appendChild(caption);
+    $('map-loading').classList.add('hidden');
+    $('live-label').textContent = 'MAPA DE RESPALDO · civicAPI';
+    refreshElectionData();
+  }
+
+  document.querySelectorAll('[data-race-tab]').forEach(button => button.addEventListener('click', () => {
+    activeRaceTab = button.dataset.raceTab;
+    raceDisplayLimit = 12;
+    document.querySelectorAll('[data-race-tab]').forEach(item => item.classList.toggle('active', item === button));
+    renderRaceExplorer(allRaceData);
+  }));
+  $('race-more')?.addEventListener('click', () => {
+    raceDisplayLimit += 12;
+    renderRaceExplorer(allRaceData);
+  });
+  $('race-search')?.addEventListener('input', event => {
+    raceSearchTerm = event.target.value.trim().toLowerCase();
+    raceDisplayLimit = 12;
+    renderRaceExplorer(allRaceData);
+  });
+
+  try {
+    const [d3Geo, topojson] = await Promise.all([
+      import('https://cdn.jsdelivr.net/npm/d3-geo@3/+esm'),
+      import('https://cdn.jsdelivr.net/npm/topojson-client@3/+esm'),
+    ]);
+    ({geoAlbersUsa, geoPath} = d3Geo);
+    ({feature} = topojson);
+    const response = await fetch(GEO_URL);
+    if (!response.ok) throw new Error('No se pudo cargar la geometría');
+    const topology = await response.json();
+    if (!topology?.objects?.states) throw new Error('La geometría no contiene estados');
+    drawStates(topology);
+  } catch (error) {
+    $('map-loading').textContent = 'No se pudo cargar la geometría; mostrando los 50 estados en vista alternativa…';
+    console.error('[Diario Federal elecciones]',error);
+    drawCartogramFallback();
+  }
+</script>

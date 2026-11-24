@@ -1,0 +1,87 @@
+{
+  "id": "2026-11-02-semanal",
+  "tipo": "semanal",
+  "titulo": "EEUU en elecciones; Rubio deja en evidencia la gobierno de Argentina; Kicillof que \"los afiliados elijan\"; Un gremialista ganó en Bariloche",
+  "fecha": "2026-11-02",
+  "voz": "es-AR-TomasNeural",
+  "velocidad": 8,
+  "musica": "/flash/musica/starostin.mp3",
+  "volumenMusica": -17,
+  "estilo": "noticiero",
+  "subtitulos": true,
+  "bloques": [
+    {
+      "kicker": "EEUU, elecciones legislativas",
+      "titulo": "Trump enfrenta una elección clave",
+      "dato": "Congreso en disputa",
+      "bajada": "Las elecciones de este martes ponen en juego las mayorías republicanas en ambas cámaras.",
+      "texto": "Estados Unidos se prepara para una elección legislativa decisiva. Este martes 3 de noviembre,  votarán para renovar la totalidad de la Cámara de Representantes y un tercio del Senado.  Trump enfrenta el riesgo de perder las mayorías republicanas en el Congreso.",
+      "epigrafe": "Mañana , un día clave en EEUU",
+      "fuente": "Reuters",
+      "media": {
+        "tipo": "foto",
+        "archivo": "data/flash/media/2026-11-02-semanal/b1-mvzno9ix.jpg",
+        "foco": [
+          0.5,
+          0.4
+        ]
+      }
+    },
+    {
+      "kicker": "Bariloche, elecciones",
+      "titulo": "revés electoral para La Libertad Avanza",
+      "dato": "35,73 % a 12, 81 %",
+      "bajada": "duro revés para La Libertad Avanza,  quedó tercera detrás del peronismo",
+      "texto": "La Libertad Avanza sufrió un duro revés electoral en Bariloche y terminó en el tercer lugar, detrás del oficialismo y del peronismo. El resultado definitivo confirmó el 35,73 por ciento para el espacio de Cortés y Weretilneck, mientras que La Libertad Avanza obtuvo apenas el 12,81 por ciento. El resultado representa un traspié para la estrategia de expansión territorial del oficialismo nacional y pone en discusión la capacidad de trasladar los acuerdos políticos nacionales al escenario electoral de las provincias.",
+      "epigrafe": "Weretilneck, en Bariloche",
+      "fuente": "Diario Rio Negro",
+      "media": {
+        "tipo": "video",
+        "archivo": "data/flash/media/2026-11-02-semanal/b2-mvzo7m1m.mp4",
+        "inicio": 0
+      }
+    },
+    {
+      "kicker": "Argentina, peronismo",
+      "titulo": "Kicillof desafía a Cristina y Massa",
+      "dato": "Nuevas canciones",
+      "bajada": "\"Pensamos que es mejor que lo decida la gente\"",
+      "texto": "Kicillof profundizó sus diferencias con Cristina Fernández de Kirchner. El gobernador bonaerense rechazó que las candidaturas presidenciales para 2027 se resuelvan mediante acuerdos de cúpula o designaciones a dedo y reclamó que sea la gente la que elija.",
+      "epigrafe": "KIcillof",
+      "fuente": "Kicillof, twiter",
+      "media": {
+        "tipo": "video",
+        "archivo": "data/flash/media/2026-11-02-semanal/b3-mvzohmi5.mp4",
+        "inicio": 0
+      }
+    },
+    {
+      "kicker": "EE:UU elecciones",
+      "titulo": "Marco Rubio niega que Estados Unidos haya ayu",
+      "dato": "Rubio sobre Bolsonaro",
+      "bajada": "Queda la descubierto la operacion de escape",
+      "texto": "El secretario de Estado, Marco Rubio, negó que Estados Unidos haya participado en la salida de Flávio Bolsonaro de Brasil hacia Miami, después de su derrota electoral. Rubio aseguró que Washington no intervino en los preparativos del viaje y explicó que Donald Trump solamente autorizó su ingreso al territorio estadounidense.  El episodio también involucra a la Argentina, por donde Bolsonaro y su familia abandonaron Brasil.",
+      "epigrafe": "Rubio desmiente",
+      "fuente": "Arhivo Trump",
+      "media": {
+        "tipo": "video",
+        "archivo": "data/flash/media/2026-11-02-semanal/b4-mvzpnfsw.mp4",
+        "inicio": 0
+      }
+    }
+  ],
+  "estado": "listo",
+  "publicado": true,
+  "video": "/flash/2026-11-02-semanal.mp4",
+  "miniatura": "/flash/2026-11-02-semanal.jpg",
+  "version": "20261102203141",
+  "duracion": 95.6,
+  "duraciones": [
+    14.0,
+    27.1,
+    13.6,
+    21.7
+  ],
+  "generado": "2026-11-02T20:31:41+00:00",
+  "rotulo": "SEMANA DEL 2 DE NOVIEMBRE DE 2026"
+}

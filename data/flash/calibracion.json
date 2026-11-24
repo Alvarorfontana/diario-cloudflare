@@ -1,0 +1,27 @@
+{
+  "es-AR-TomasNeural|8": {
+    "caracteres": 13310,
+    "segundos": 738.8781249999998,
+    "porSegundo": 18.01
+  },
+  "es-AR-ElenaNeural|10": {
+    "caracteres": 3826,
+    "segundos": 192.77520833333332,
+    "porSegundo": 19.85
+  },
+  "es-UY-MateoNeural|10": {
+    "caracteres": 1899,
+    "segundos": 86.49095833333332,
+    "porSegundo": 21.96
+  },
+  "es-AR-TomasNeural|-10": {
+    "caracteres": 1313,
+    "segundos": 87.77850000000001,
+    "porSegundo": 14.96
+  },
+  "es-AR-TomasNeural|14": {
+    "caracteres": 6578,
+    "segundos": 396.6102916666666,
+    "porSegundo": 16.59
+  }
+}

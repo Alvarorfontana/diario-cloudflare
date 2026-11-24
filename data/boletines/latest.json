@@ -1,0 +1,51 @@
+{
+  "title": "Boletín informativo principal",
+  "date": "2026-11-24",
+  "dateLabel": "24/11/2026",
+  "archivo": "/boletines/boletin-principal-2026-11-24-7df9b9010b96.mp3",
+  "video": "/boletines/boletin-principal-2026-11-24-7df9b9010b96.mp4",
+  "tapa": "/boletines/boletin-principal-2026-11-24-7df9b9010b96.png",
+  "duracion": 97,
+  "voz": "es-AR-TomasNeural",
+  "hash": "7df9b9010b96",
+  "items": [
+    {
+      "slug": "2026-11-24-economia-espejo-retrovisor-actividad-septiembre-2026",
+      "title": "La economía en el espejo retrovisor: la Argentina conoce hoy los números de hace dos meses, mientras el deterioro continúa",
+      "section": "economia",
+      "url": "/articulo/2026-11-24-economia-espejo-retrovisor-actividad-septiembre-2026/"
+    },
+    {
+      "slug": "2026-11-24-pami-ajuste-sobre-los-cuerpos",
+      "title": "El ajuste sobre los cuerpos: cómo se vació el PAMI",
+      "section": "argentina",
+      "url": "/articulo/2026-11-24-pami-ajuste-sobre-los-cuerpos/"
+    },
+    {
+      "slug": "2026-11-24-dolar-1600-deuda-cara-retroceso-industrial",
+      "title": "Dólar arriba de $1.600, deuda cara y una industria que no frena su caída",
+      "section": "economia",
+      "url": "/articulo/2026-11-24-dolar-1600-deuda-cara-retroceso-industrial/"
+    },
+    {
+      "slug": "2026-11-23-santucho-la-uba-y-el-silencio-de-grabois",
+      "title": "Santucho, la UBA y el silencio de Grabois",
+      "section": "opinion",
+      "url": "/articulo/2026-11-23-santucho-la-uba-y-el-silencio-de-grabois/"
+    },
+    {
+      "slug": "2026-11-22-kicillof-teje-adentro-massa-arma-afuera-pj-bonaerense",
+      "title": "Kicillof teje adentro, Massa arma afuera: el reparto del PJ bonaerense",
+      "section": "argentina",
+      "url": "/articulo/2026-11-22-kicillof-teje-adentro-massa-arma-afuera-pj-bonaerense/"
+    },
+    {
+      "slug": "2026-11-22-rigi-mucho-anuncio-poca-plata",
+      "title": "RIGI: mucho anuncio, poca plata y casi la mitad ya estaba en marcha",
+      "section": "economia",
+      "url": "/articulo/2026-11-22-rigi-mucho-anuncio-poca-plata/"
+    }
+  ],
+  "intro": "Diario Federal. La información, en primer plano.",
+  "outro": "Más información durante toda la jornada en diariofederal.com.ar."
+}
